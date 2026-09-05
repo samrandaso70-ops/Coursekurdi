@@ -1,0 +1,7 @@
+# System & IDE files
+.system_generated/
+.gemini/
+*.log
+
+# Temporary / Scratch
+scratch/

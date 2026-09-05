@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayVault | Multi-Course & Multi-Year Customer Payment Database</title>
+  <meta name="description" content="Manage customer and student payment records across multiple courses and academic years. Real-time money and enrollment calculations with payment proof photos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient Background Glows -->
+  <div class="glow-orb glow-top-left"></div>
+  <div class="glow-orb glow-bottom-right"></div>
+
+  <div class="app-container">
+    <!-- Top Navigation / Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <line x1="9" y1="7" x2="15" y2="7"></line>
+            <line x1="9" y1="11" x2="15" y2="11"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">PayVault</h1>
+          <p class="brand-subtitle">Multi-Course & Multi-Year Payment Database</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="openCourseModalBtn" class="btn btn-secondary" title="Create a new course ledger">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+            <line x1="12" y1="14" x2="12" y2="18"></line>
+            <line x1="10" y1="16" x2="14" y2="16"></line>
+          </svg>
+          + New Course
+        </button>
+
+        <button id="exportBtn" class="btn btn-secondary" title="Export complete database backup">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export
+        </button>
+
+        <button id="importTriggerBtn" class="btn btn-secondary" title="Import database backup">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Import
+        </button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+
+        <button id="openAddModalBtn" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Customer
+        </button>
+      </div>
+    </header>
+
+    <!-- Course & Year Navigation Bar -->
+    <section class="course-nav-bar">
+      <div class="course-nav-header">
+        <div class="nav-label-wrap">
+          <span class="nav-label">Filter by Year:</span>
+          <div id="yearFilterGroup" class="year-chips-group">
+            <button class="year-chip active" data-year="all">All Years</button>
+            <!-- Dynamic Year Chips (e.g. 2024, 2025, 2026) -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Tabs Switcher -->
+      <div class="course-tabs-wrapper">
+        <div id="courseTabsList" class="course-tabs-list">
+          <button class="course-tab active" data-course-id="all">
+            <span class="tab-title">All Courses Overview</span>
+            <span class="tab-count" id="allCoursesCountBadge">0</span>
+          </button>
+          <!-- Dynamic Course Tabs injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Active Course Header Banner (shown when a specific course is selected) -->
+    <div id="activeCourseBanner" class="active-course-banner" style="display: none;">
+      <div class="banner-details">
+        <div class="banner-tag-row">
+          <span class="banner-year-tag" id="bannerYearTag">2026</span>
+          <span class="banner-category-tag" id="bannerCategoryTag">Web Development</span>
+        </div>
+        <h2 class="banner-title" id="bannerTitle">Course Name</h2>
+      </div>
+      <div class="banner-actions">
+        <button id="deleteCourseBtn" class="btn btn-ghost btn-danger-ghost" title="Delete this entire course recorder">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Delete Course
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Summary Cards (Calculates money and number of students) -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label" id="statMoneyLabel">Total Money Collected</span>
+          <h2 class="stat-value" id="statTotalAmount">$0.00</h2>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label" id="statStudentsLabel">Total Students / Customers</span>
+          <h2 class="stat-value" id="statTotalCustomers">0</h2>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-purple">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Average Payment</span>
+          <h2 class="stat-value" id="statAverageAmount">$0.00</h2>
+        </div>
+      </div>
+    </section>
+
+    <!-- Course Cards Overview Grid (Visible when "All Courses" is selected) -->
+    <div id="allCoursesOverviewSection" class="courses-overview-section" style="display: none;">
+      <div class="section-header-compact">
+        <h3 class="overview-heading">Course Breakdown (Years & Course Types)</h3>
+        <p class="overview-sub">Click any course to view its individual payment records</p>
+      </div>
+      <div id="courseBreakdownGrid" class="course-breakdown-grid">
+        <!-- Dynamic course summary cards injected here -->
+      </div>
+    </div>
+
+    <!-- Controls Bar (Search & Filter) -->
+    <section class="controls-bar">
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search by customer name, notes, or course..." autocomplete="off">
+        <button id="clearSearchBtn" class="clear-search-btn" style="display: none;" title="Clear search">×</button>
+      </div>
+
+      <div class="filter-controls">
+        <label for="sortSelect" class="sort-label">Sort by:</label>
+        <select id="sortSelect" class="select-dropdown">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First (Entry #1)</option>
+          <option value="amount-high">Amount (Highest)</option>
+          <option value="amount-low">Amount (Lowest)</option>
+          <option value="name-az">Customer Name (A-Z)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Records Section (Infinite Database List) -->
+    <section class="database-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <h2 class="section-title" id="recordsSectionTitle">Customer Payment Entries</h2>
+          <span class="badge" id="recordCountBadge">0 Records</span>
+        </div>
+        <p class="section-subtitle">Click on any record or its picture to inspect payment proof</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon-wrap">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <path d="M7 15h0M2 9.5h20"></path>
+          </svg>
+        </div>
+        <h3 id="emptyStateTitle">No Records Found</h3>
+        <p id="emptyStateDesc">Add your first customer payment record or load demo samples with multiple courses.</p>
+        <div class="empty-actions">
+          <button id="emptyAddBtn" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Customer
+          </button>
+          <button id="loadSampleBtn" class="btn btn-ghost">Load Multi-Course Demo</button>
+        </div>
+      </div>
+
+      <!-- Records Table Container -->
+      <div id="recordsTableContainer" class="table-container" style="display: none;">
+        <table class="records-table">
+          <thead>
+            <tr>
+              <th style="width: 70px;">No.</th>
+              <th>Customer / Student</th>
+              <th id="courseColumnHeader">Course & Year</th>
+              <th>Amount Paid</th>
+              <th>Picture of Money</th>
+              <th>Date Added</th>
+              <th style="width: 130px; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordsTableBody">
+            <!-- Dynamic rows inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 1: Add / Edit Customer Payment
+       ========================================================================== -->
+  <div id="customerModal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-tag" id="modalTag">Database Record</span>
+          <h2 class="modal-title" id="modalTitle">Customer Payment Entry</h2>
+        </div>
+        <button id="closeModalBtn" class="close-btn" aria-label="Close window">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="customerForm" class="modal-form" novalidate>
+        <input type="hidden" id="recordIdInput">
+
+        <!-- Course Assignment Selector -->
+        <div class="form-section course-select-section">
+          <div class="form-section-header">
+            <div class="step-badge step-badge-course">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <label for="customerCourseSelect" class="form-section-title">Course Recorder</label>
+              <p class="form-section-desc">Select which course and year to record this payment in</p>
+            </div>
+          </div>
+          <div class="select-wrapper">
+            <select id="customerCourseSelect" class="form-input form-select-styled">
+              <!-- Dynamically populated courses -->
+            </select>
+          </div>
+        </div>
+
+        <!-- SECTION 1: Customer Name -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="step-badge">1</span>
+            <div>
+              <label for="customerNameInput" class="form-section-title">Customer / Student Name</label>
+              <p class="form-section-desc">Enter the full name of the customer</p>
+            </div>
+          </div>
+          <div class="input-wrapper">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input 
+              type="text" 
+              id="customerNameInput" 
+              class="form-input" 
+              placeholder="e.g. John Doe, Sarah Connor..." 
+              required
+              autocomplete="name"
+            >
+          </div>
+          <span class="form-error" id="nameError">Please enter customer name</span>
+        </div>
+
+        <!-- SECTION 2: Amount of Money -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="step-badge">2</span>
+            <div>
+              <label for="amountInput" class="form-section-title">Amount Paid</label>
+              <p class="form-section-desc">Specify the total money sent or transferred</p>
+            </div>
+          </div>
+          <div class="amount-input-group">
+            <div class="currency-select-wrapper">
+              <select id="currencySelect" class="currency-select">
+                <option value="IQD" selected>IQD (ع.د - Iraqi Dinar)</option>
+                <option value="KWD">KWD (د.ك - Kuwaiti Dinar)</option>
+                <option value="JOD">JOD (د.أ - Jordanian Dinar)</option>
+                <option value="BHD">BHD (د.ب - Bahraini Dinar)</option>
+                <option value="LYD">LYD (د.ل - Libyan Dinar)</option>
+                <option value="TND">TND (د.ت - Tunisian Dinar)</option>
+                <option value="DZD">DZD (د.ج - Algerian Dinar)</option>
+                <option value="$">$ (USD - Dollar)</option>
+                <option value="€">€ (EUR - Euro)</option>
+                <option value="£">£ (GBP - Pound)</option>
+                <option value="AED">AED (Dirham)</option>
+                <option value="SAR">SAR (Riyal)</option>
+              </select>
+            </div>
+            <div class="input-wrapper flex-1">
+              <input 
+                type="number" 
+                id="amountInput" 
+                class="form-input" 
+                placeholder="0.00" 
+                step="0.01" 
+                min="0" 
+                required
+              >
+            </div>
+          </div>
+          <span class="form-error" id="amountError">Please enter a valid payment amount</span>
+        </div>
+
+        <!-- SECTION 3: Picture of the Money -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="step-badge">3</span>
+            <div>
+              <label class="form-section-title">Picture of the Money / Receipt</label>
+              <p class="form-section-desc">Upload a photo of the cash, transfer receipt, or proof of payment</p>
+            </div>
+          </div>
+
+          <!-- Upload Drop Zone -->
+          <div id="dropZone" class="upload-dropzone">
+            <input type="file" id="imageFileInput" accept="image/*" class="file-input-hidden">
+            
+            <!-- Upload Placeholder -->
+            <div id="uploadPlaceholder" class="upload-placeholder">
+              <div class="upload-icon-circle">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <p class="upload-text-main">
+                <span class="text-accent">Click to choose image</span> or drag & drop here
+              </p>
+              <p class="upload-text-sub">PNG, JPG, WEBP, or GIF (Receipt / Cash photo). Paste with Ctrl+V supported.</p>
+            </div>
+
+            <!-- Preview Box (Hidden until image selected) -->
+            <div id="imagePreviewBox" class="image-preview-box" style="display: none;">
+              <img id="previewImg" src="" alt="Payment proof preview">
+              <div class="preview-overlay">
+                <span class="preview-badge">Payment Photo Ready</span>
+                <button type="button" id="removeImageBtn" class="btn-remove-img" title="Remove image">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  Remove & Replace
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optional Details -->
+        <div class="optional-details-group">
+          <label for="notesInput" class="notes-label">Optional Note or Payment Method</label>
+          <input type="text" id="notesInput" class="form-input-subtle" placeholder="e.g. Bank transfer, Cash in person, Tuition Installment #1...">
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer">
+          <button type="button" id="cancelModalBtn" class="btn btn-ghost">Cancel</button>
+          <button type="submit" id="saveRecordBtn" class="btn btn-primary btn-save">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save Customer Entry
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: Create New Course Recorder
+       ========================================================================== -->
+  <div id="courseModal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <div>
+          <span class="modal-tag">Course Management</span>
+          <h2 class="modal-title">Create New Course Recorder</h2>
+        </div>
+        <button id="closeCourseModalBtn" class="close-btn" aria-label="Close window">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="courseForm" class="modal-form" novalidate>
+        <!-- Year Selection / Input -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="step-badge step-badge-course">📅</span>
+            <div>
+              <label for="courseYearInput" class="form-section-title">Academic Year</label>
+              <p class="form-section-desc">The year for this course cohort</p>
+            </div>
+          </div>
+          <div class="input-wrapper">
+            <input 
+              type="number" 
+              id="courseYearInput" 
+              class="form-input" 
+              placeholder="e.g. 2025, 2026, 2027" 
+              min="2000" 
+              max="2100" 
+              required
+            >
+          </div>
+          <span class="form-error" id="courseYearError">Please enter a valid year</span>
+        </div>
+
+        <!-- Course Name -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="step-badge step-badge-course">🎓</span>
+            <div>
+              <label for="courseNameInput" class="form-section-title">Course Name / Type</label>
+              <p class="form-section-desc">The title or program of study</p>
+            </div>
+          </div>
+          <div class="input-wrapper">
+            <input 
+              type="text" 
+              id="courseNameInput" 
+              class="form-input" 
+              placeholder="e.g. Full-Stack Web Dev, Graphic Design, English Mastery..." 
+              required
+            >
+          </div>
+          <span class="form-error" id="courseNameError">Please enter course title</span>
+        </div>
+
+        <!-- Category / Tag -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="step-badge step-badge-course">🏷️</span>
+            <div>
+              <label for="courseCategoryInput" class="form-section-title">Category</label>
+              <p class="form-section-desc">Discipline or type of program</p>
+            </div>
+          </div>
+          <div class="input-wrapper">
+            <select id="courseCategoryInput" class="form-input form-select-styled">
+              <option value="Programming">Programming & Tech</option>
+              <option value="Design">Design & Multimedia</option>
+              <option value="Languages">Languages & Communication</option>
+              <option value="Business">Business & Finance</option>
+              <option value="Marketing">Digital Marketing</option>
+              <option value="General">General Education</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancelCourseModalBtn" class="btn btn-ghost">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-save">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Create Course Recorder
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       LIGHTBOX MODAL: Inspect Payment Proof Image Full Size
+       ========================================================================== -->
+  <div id="lightboxModal" class="lightbox-backdrop" aria-hidden="true" role="dialog">
+    <div class="lightbox-content">
+      <div class="lightbox-header">
+        <div>
+          <h3 id="lightboxCustomerName" class="lightbox-title">Customer Payment Photo</h3>
+          <p id="lightboxAmount" class="lightbox-subtitle">$0.00</p>
+        </div>
+        <button id="closeLightboxBtn" class="close-btn" aria-label="Close photo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="lightbox-body">
+        <img id="lightboxImg" src="" alt="Full size payment photo">
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" role="alert" aria-live="polite">
+    <div id="toastIcon" class="toast-icon"></div>
+    <span id="toastMsg" class="toast-message">Record saved successfully</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
