@@ -189,6 +189,11 @@ class Database {
 // 1B. Real-Time Multi-Device Cloud Synchronization Engine (Firebase RTDB)
 // ==========================================================================
 const CLOUD_CONFIG_STORAGE_KEY = 'payvault_cloud_sync_config_v2';
+const DEFAULT_CLOUD_CONFIG = {
+  databaseURL: 'https://courseka-b36d6-default-rtdb.firebaseio.com',
+  projectId: 'courseka-b36d6',
+  apiKey: ''
+};
 
 class CloudSync {
   static config = null;
@@ -227,7 +232,9 @@ class CloudSync {
     } catch (e) {
       console.warn('Could not load saved sync config:', e);
     }
-    return null;
+
+    // 3. Auto-connect using default cloud database
+    return DEFAULT_CLOUD_CONFIG;
   }
 
   static saveConfig(cfg) {
