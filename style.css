@@ -488,6 +488,12 @@ body {
   border: 1px solid rgba(124, 58, 237, 0.15);
 }
 
+.stat-icon-orange {
+  background: rgba(234, 88, 12, 0.08);
+  color: #EA580C;
+  border: 1px solid rgba(234, 88, 12, 0.18);
+}
+
 .stat-label {
   font-size: 13px;
   color: var(--text-muted);

@@ -1292,12 +1292,22 @@ function calculateAndRenderStats() {
 
   const count = relevantCustomers.length;
   const totalMoney = relevantCustomers.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  const avgMoney = count > 0 ? totalMoney / count : 0;
   const primaryCurrency = relevantCustomers[0]?.currency || 'IQD';
 
   statTotalAmount.textContent = formatCurrency(totalMoney, primaryCurrency);
   statTotalCustomers.textContent = count;
-  statAverageAmount.textContent = formatCurrency(avgMoney, primaryCurrency);
+
+  // 3rd stat: free-enrolled count when specific course selected, average payment otherwise
+  if (state.activeCourseId !== 'all') {
+    const freeCount = relevantCustomers.filter(c => Number(c.amount) === 0).length;
+    document.getElementById('statAvgLabel').textContent = 'Enrolled in Course for Free';
+    statAverageAmount.textContent = freeCount;
+  } else {
+    const avgMoney = count > 0 ? totalMoney / count : 0;
+    document.getElementById('statAvgLabel').textContent = 'Average Payment';
+    statAverageAmount.textContent = formatCurrency(avgMoney, primaryCurrency);
+  }
+
   recordCountBadge.textContent = `${count} ${count === 1 ? 'Record' : 'Records'}`;
 }
 
