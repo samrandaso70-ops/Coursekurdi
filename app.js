@@ -186,6 +186,281 @@ class Database {
 }
 
 // ==========================================================================
+// 1B. Real-Time Multi-Device Cloud Synchronization Engine (Firebase RTDB)
+// ==========================================================================
+const CLOUD_CONFIG_STORAGE_KEY = 'payvault_cloud_sync_config_v2';
+
+class CloudSync {
+  static config = null;
+  static rtdb = null;
+  static isConnected = false;
+  static isSyncing = false;
+  static isReceivingRemoteUpdate = false;
+  static lastSyncTime = null;
+  static dbRef = null;
+
+  static loadConfig() {
+    // 1. Check URL hash first (e.g. from QR code scan or share link: #sync=...)
+    try {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#sync=')) {
+        const encoded = hash.slice(6);
+        const jsonStr = decodeURIComponent(escape(atob(decodeURIComponent(encoded))));
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && (parsed.databaseURL || parsed.apiKey)) {
+          localStorage.setItem(CLOUD_CONFIG_STORAGE_KEY, JSON.stringify(parsed));
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          showToast('📱 Device paired! Connecting to cloud...', 'success');
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse sync URL hash:', e);
+    }
+
+    // 2. Load from localStorage
+    try {
+      const saved = localStorage.getItem(CLOUD_CONFIG_STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Could not load saved sync config:', e);
+    }
+    return null;
+  }
+
+  static saveConfig(cfg) {
+    this.config = cfg;
+    localStorage.setItem(CLOUD_CONFIG_STORAGE_KEY, JSON.stringify(cfg));
+  }
+
+  static clearConfig() {
+    this.config = null;
+    this.isConnected = false;
+    if (this.dbRef) {
+      try { this.dbRef.off(); } catch (e) {}
+    }
+    this.rtdb = null;
+    localStorage.removeItem(CLOUD_CONFIG_STORAGE_KEY);
+    this.updateStatusUI('not-configured', 'Cloud Sync: Local Mode Only', 'Data is currently saved only in this browser.');
+  }
+
+  static async init() {
+    this.config = this.loadConfig();
+    if (this.config && this.config.databaseURL) {
+      await this.connect(this.config, false);
+    } else {
+      this.updateStatusUI('not-configured', 'Cloud Sync: Local Mode Only', 'Data is currently saved only in this browser.');
+    }
+  }
+
+  static async connect(cfg, notifySuccess = true) {
+    if (!cfg || !cfg.databaseURL) {
+      showToast('Please provide a valid Firebase Database URL', 'error');
+      return false;
+    }
+
+    // Normalize databaseURL (trim trailing slashes)
+    let dbUrl = cfg.databaseURL.trim().replace(/\/+$/, '');
+    if (!dbUrl.startsWith('http://') && !dbUrl.startsWith('https://')) {
+      dbUrl = 'https://' + dbUrl;
+    }
+    cfg.databaseURL = dbUrl;
+
+    if (typeof firebase === 'undefined') {
+      console.warn('Firebase SDK not loaded');
+      this.updateStatusUI('not-configured', 'Offline / SDK Error', 'Firebase library could not be loaded.');
+      return false;
+    }
+
+    try {
+      this.updateStatusUI('syncing', 'Connecting to Cloud...', 'Establishing connection...');
+
+      // Check if firebase app already exists
+      let app;
+      const appName = 'payvaultApp';
+      const existingApp = firebase.apps ? firebase.apps.find(a => a.name === appName) : null;
+      if (existingApp) {
+        app = existingApp;
+      } else {
+        const projectIdMatch = cfg.databaseURL.match(/https:\/\/([^.]+)/);
+        const derivedProjectId = projectIdMatch ? projectIdMatch[1] : 'payvault';
+        app = firebase.initializeApp({
+          databaseURL: cfg.databaseURL,
+          apiKey: cfg.apiKey || 'AIzaSyDemoDummyKeyForFreePublicRTDB',
+          projectId: cfg.projectId || derivedProjectId
+        }, appName);
+      }
+
+      this.rtdb = firebase.database(app);
+      this.saveConfig(cfg);
+
+      // Listen for connection state (.info/connected)
+      const connRef = this.rtdb.ref('.info/connected');
+      connRef.on('value', (snap) => {
+        if (snap.val() === true) {
+          this.isConnected = true;
+          this.updateStatusUI('connected', '🟢 Live Cloud Synced', 'Mobile, Tablet & Laptop are synced in real-time.');
+        } else {
+          this.isConnected = false;
+          this.updateStatusUI('syncing', 'Connecting to Cloud...', 'Connecting to real-time sync server...');
+        }
+      });
+
+      // Setup real-time listener on payvault
+      this.setupRealtimeListener();
+
+      if (notifySuccess) {
+        showToast('Connected to Cloud Database! Real-time sync is active.', 'success');
+      }
+
+      this.updatePairingUI();
+      return true;
+    } catch (err) {
+      console.error('Firebase connection error:', err);
+      this.updateStatusUI('not-configured', 'Connection Failed', err.message);
+      if (notifySuccess) {
+        showToast('Connection failed: ' + err.message, 'error');
+      }
+      return false;
+    }
+  }
+
+  static setupRealtimeListener() {
+    if (!this.rtdb) return;
+    if (this.dbRef) {
+      try { this.dbRef.off(); } catch (e) {}
+    }
+
+    this.dbRef = this.rtdb.ref('payvault');
+    this.dbRef.on('value', async (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        // Cloud is empty. If we have local records, auto-upload to initialize cloud
+        const localCourses = await Database.getAllCourses();
+        const localCustomers = await Database.getAllCustomers();
+        if ((localCourses.length > 0 || localCustomers.length > 0) && !this.isReceivingRemoteUpdate) {
+          await this.pushData();
+        }
+        return;
+      }
+
+      await this.handleRemoteUpdate(data);
+    }, (err) => {
+      console.error('Cloud realtime listener error:', err);
+      this.updateStatusUI('not-configured', 'Sync Permission Error', 'Please check Firebase database rules (test mode).');
+    });
+  }
+
+  static async handleRemoteUpdate(cloudData) {
+    if (this.isSyncing) return; // Ignore reflection of our own push
+    this.isReceivingRemoteUpdate = true;
+
+    try {
+      // Normalize cloud courses and customers
+      const cloudCourses = cloudData.courses ? (Array.isArray(cloudData.courses) ? cloudData.courses : Object.values(cloudData.courses)) : [];
+      const cloudCustomers = cloudData.customers ? (Array.isArray(cloudData.customers) ? cloudData.customers : Object.values(cloudData.customers)) : [];
+
+      // Replace local IndexedDB with latest cloud state
+      await Database.replaceAllData(cloudCourses, cloudCustomers);
+
+      // Re-render UI
+      await loadDatabase();
+
+      this.lastSyncTime = Date.now();
+      this.updateStatusUI('connected', '🟢 Live Cloud Synced', `Updated from cloud at ${new Date().toLocaleTimeString()}`);
+    } catch (err) {
+      console.error('Error handling remote cloud data:', err);
+    } finally {
+      this.isReceivingRemoteUpdate = false;
+    }
+  }
+
+  static async pushData() {
+    if (!this.rtdb || this.isReceivingRemoteUpdate) return;
+    this.isSyncing = true;
+    this.updateStatusUI('syncing', 'Syncing to Cloud...', 'Uploading latest changes...');
+
+    try {
+      const courses = await Database.getAllCourses();
+      const customers = await Database.getAllCustomers();
+
+      await this.rtdb.ref('payvault').set({
+        courses: courses || [],
+        customers: customers || [],
+        lastUpdated: Date.now()
+      });
+
+      this.lastSyncTime = Date.now();
+      this.updateStatusUI('connected', '🟢 Live Cloud Synced', `All changes saved to cloud at ${new Date().toLocaleTimeString()}`);
+    } catch (err) {
+      console.error('Failed to push data to cloud:', err);
+      this.updateStatusUI('not-configured', 'Cloud Push Error', err.message);
+      showToast('Could not sync to cloud: ' + err.message, 'error');
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  static updateStatusUI(statusClass, headline, detail) {
+    const indicator = document.getElementById('headerSyncIndicator');
+    const headerText = document.getElementById('headerSyncText');
+    const orb = document.getElementById('syncStatusOrb');
+    const headlineEl = document.getElementById('syncStatusHeadline');
+    const detailEl = document.getElementById('syncStatusDetail');
+    const forceSyncBtn = document.getElementById('forceSyncNowBtn');
+    const uploadBtn = document.getElementById('uploadLocalDataBtn');
+    const disconnectBtn = document.getElementById('disconnectSyncBtn');
+    const pairingSection = document.getElementById('syncPairingSection');
+
+    if (indicator) {
+      indicator.className = `sync-dot ${statusClass}`;
+    }
+    if (orb) {
+      orb.className = `status-orb ${statusClass}`;
+    }
+    if (headlineEl) headlineEl.textContent = headline;
+    if (detailEl) detailEl.textContent = detail;
+
+    const emptySyncCallout = document.getElementById('emptySyncCallout');
+    if (statusClass === 'connected') {
+      if (headerText) headerText.textContent = '🟢 Synced';
+      if (forceSyncBtn) forceSyncBtn.style.display = 'inline-flex';
+      if (uploadBtn) uploadBtn.style.display = 'inline-flex';
+      if (disconnectBtn) disconnectBtn.style.display = 'inline-flex';
+      if (pairingSection) pairingSection.style.display = 'flex';
+      if (emptySyncCallout) emptySyncCallout.style.display = 'none';
+      this.updatePairingUI();
+    } else if (statusClass === 'syncing') {
+      if (headerText) headerText.textContent = '🔄 Syncing...';
+      if (forceSyncBtn) forceSyncBtn.style.display = 'inline-flex';
+    } else {
+      if (headerText) headerText.textContent = '📱 Sync Devices';
+      if (forceSyncBtn) forceSyncBtn.style.display = 'none';
+      if (uploadBtn) uploadBtn.style.display = 'none';
+      if (disconnectBtn) disconnectBtn.style.display = 'none';
+      if (pairingSection) pairingSection.style.display = 'none';
+      if (emptySyncCallout) emptySyncCallout.style.display = 'flex';
+    }
+  }
+
+  static updatePairingUI() {
+    if (!this.config) return;
+    const qrImg = document.getElementById('syncQrCodeImg');
+    const shareInput = document.getElementById('syncShareLinkInput');
+    if (!qrImg || !shareInput) return;
+
+    const jsonStr = JSON.stringify(this.config);
+    const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
+    const pairingUrl = `${window.location.origin}${window.location.pathname}#sync=${encoded}`;
+
+    shareInput.value = pairingUrl;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=8&data=${encodeURIComponent(pairingUrl)}`;
+  }
+}
+
+// ==========================================================================
 // 2. Application State & DOM Selectors
 // ==========================================================================
 const state = {
@@ -309,6 +584,23 @@ const lightboxPhoto2Btn = document.getElementById('lightboxPhoto2Btn');
 // Toast
 const toast = document.getElementById('toast');
 const toastMsg = document.getElementById('toastMsg');
+
+// Cloud Sync Modal Selectors
+const openSyncModalBtn = document.getElementById('openSyncModalBtn');
+const syncModal = document.getElementById('syncModal');
+const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
+const toggleConfigGuideBtn = document.getElementById('toggleConfigGuideBtn');
+const syncGuideBox = document.getElementById('syncGuideBox');
+const syncConfigForm = document.getElementById('syncConfigForm');
+const syncDbUrlInput = document.getElementById('syncDbUrlInput');
+const syncApiKeyInput = document.getElementById('syncApiKeyInput');
+const syncProjectIdInput = document.getElementById('syncProjectIdInput');
+const saveSyncConfigBtn = document.getElementById('saveSyncConfigBtn');
+const uploadLocalDataBtn = document.getElementById('uploadLocalDataBtn');
+const disconnectSyncBtn = document.getElementById('disconnectSyncBtn');
+const forceSyncNowBtn = document.getElementById('forceSyncNowBtn');
+const copySyncLinkBtn = document.getElementById('copySyncLinkBtn');
+const copySyncLinkBtnText = document.getElementById('copySyncLinkBtnText');
 
 // ==========================================================================
 // 3. Image Processing (File & Drag-Drop & Clipboard) - Dual Photo Support
@@ -566,6 +858,7 @@ courseForm.addEventListener('submit', async (e) => {
       showToast(`Updated course: "${nameVal}"`);
       closeCourseModal();
       await loadDatabase();
+      await CloudSync.pushData();
     } else {
       // Create new course
       const newCourse = {
@@ -582,6 +875,7 @@ courseForm.addEventListener('submit', async (e) => {
       state.activeCourseId = courseId;
       state.activeYear = String(yearVal);
       await loadDatabase();
+      await CloudSync.pushData();
     }
   } catch (err) {
     console.error(err);
@@ -603,6 +897,7 @@ deleteCourseBtn.addEventListener('click', async () => {
       showToast(`Deleted course "${courseName}"`);
       state.activeCourseId = 'all';
       await loadDatabase();
+      await CloudSync.pushData();
     } catch (err) {
       console.error(err);
       showToast('Could not delete course', 'error');
@@ -795,6 +1090,7 @@ customerForm.addEventListener('submit', async (e) => {
 
     closeCustomerModal();
     await loadDatabase();
+    await CloudSync.pushData();
   } catch (err) {
     console.error('Error saving customer:', err);
     showToast('Failed to save record to database', 'error');
@@ -1312,6 +1608,7 @@ window.handleDeleteClick = async (id) => {
       await Database.deleteCustomer(id);
       showToast(`Record for "${name}" deleted`);
       await loadDatabase();
+      await CloudSync.pushData();
     } catch (err) {
       console.error(err);
       showToast('Could not delete record', 'error');
@@ -1514,6 +1811,7 @@ importFileInput.addEventListener('change', (e) => {
 
       importFileInput.value = '';
       await loadDatabase();
+      await CloudSync.pushData();
     } catch (err) {
       console.error(err);
       showToast('Invalid backup file. Please select a valid PayVault JSON backup.', 'error');
@@ -1788,9 +2086,147 @@ loadSampleBtn.addEventListener('click', async () => {
 
   showToast('Loaded 3 courses with Dual-Photo Dinar payment records!');
   await loadDatabase();
+  await CloudSync.pushData();
 });
+
+// ==========================================================================
+// 10. Cloud Sync Modal Handlers & Device Pairing Listeners
+// ==========================================================================
+function openSyncModal() {
+  const currentConfig = CloudSync.config || CloudSync.loadConfig();
+  if (currentConfig) {
+    syncDbUrlInput.value = currentConfig.databaseURL || '';
+    syncApiKeyInput.value = currentConfig.apiKey || '';
+    syncProjectIdInput.value = currentConfig.projectId || '';
+  }
+  CloudSync.updatePairingUI();
+  syncModal.classList.add('is-open');
+  syncModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeSyncModal() {
+  syncModal.classList.remove('is-open');
+  syncModal.setAttribute('aria-hidden', 'true');
+}
+
+if (openSyncModalBtn) openSyncModalBtn.addEventListener('click', openSyncModal);
+if (closeSyncModalBtn) closeSyncModalBtn.addEventListener('click', closeSyncModal);
+const emptySyncTriggerBtn = document.getElementById('emptySyncTriggerBtn');
+if (emptySyncTriggerBtn) emptySyncTriggerBtn.addEventListener('click', openSyncModal);
+
+if (syncModal) {
+  syncModal.addEventListener('click', (e) => {
+    if (e.target === syncModal) closeSyncModal();
+  });
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && syncModal && syncModal.classList.contains('is-open')) {
+    closeSyncModal();
+  }
+});
+
+if (toggleConfigGuideBtn) {
+  toggleConfigGuideBtn.addEventListener('click', () => {
+    const isHidden = syncGuideBox.style.display === 'none';
+    syncGuideBox.style.display = isHidden ? 'block' : 'none';
+    toggleConfigGuideBtn.textContent = isHidden ? 'Hide setup guide ▴' : 'How to setup in 1 min (Free) ▾';
+  });
+}
+
+if (syncConfigForm) {
+  syncConfigForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dbUrl = syncDbUrlInput.value.trim();
+    const apiKey = syncApiKeyInput.value.trim();
+    const projectId = syncProjectIdInput.value.trim();
+
+    if (!dbUrl) {
+      showToast('Please enter your Firebase Database URL', 'error');
+      return;
+    }
+
+    const cfg = {
+      databaseURL: dbUrl,
+      apiKey: apiKey,
+      projectId: projectId
+    };
+
+    saveSyncConfigBtn.disabled = true;
+    saveSyncConfigBtn.textContent = 'Connecting...';
+
+    const success = await CloudSync.connect(cfg, true);
+    saveSyncConfigBtn.disabled = false;
+    saveSyncConfigBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+      Save & Connect Cloud
+    `;
+
+    if (success) {
+      const localCourses = await Database.getAllCourses();
+      const localCustomers = await Database.getAllCustomers();
+      if (localCourses.length > 0 || localCustomers.length > 0) {
+        await CloudSync.pushData();
+      }
+    }
+  });
+}
+
+if (uploadLocalDataBtn) {
+  uploadLocalDataBtn.addEventListener('click', async () => {
+    if (confirm('Upload all local courses and customer payments to the cloud?')) {
+      await CloudSync.pushData();
+      showToast('Uploaded local records to cloud successfully!', 'success');
+    }
+  });
+}
+
+if (disconnectSyncBtn) {
+  disconnectSyncBtn.addEventListener('click', () => {
+    if (confirm('Disconnect from Cloud Database? Your local data will remain intact.')) {
+      CloudSync.clearConfig();
+      showToast('Disconnected from cloud sync.');
+    }
+  });
+}
+
+if (forceSyncNowBtn) {
+  forceSyncNowBtn.addEventListener('click', async () => {
+    if (!CloudSync.isConnected && CloudSync.config) {
+      await CloudSync.connect(CloudSync.config, true);
+    } else if (CloudSync.isConnected) {
+      await CloudSync.pushData();
+      showToast('Synced all data with cloud!');
+    }
+  });
+}
+
+if (copySyncLinkBtn) {
+  copySyncLinkBtn.addEventListener('click', async () => {
+    const linkInput = document.getElementById('syncShareLinkInput');
+    if (linkInput && linkInput.value) {
+      try {
+        await navigator.clipboard.writeText(linkInput.value);
+        if (copySyncLinkBtnText) copySyncLinkBtnText.textContent = 'Copied!';
+        showToast('📋 Pairing link copied to clipboard!');
+        setTimeout(() => {
+          if (copySyncLinkBtnText) copySyncLinkBtnText.textContent = 'Copy Link';
+        }, 2500);
+      } catch (err) {
+        linkInput.select();
+        document.execCommand('copy');
+        showToast('📋 Copied link!');
+      }
+    }
+  });
+}
 
 // Initialize on DOM ready
 window.addEventListener('DOMContentLoaded', async () => {
   await loadDatabase();
+  await CloudSync.init();
 });

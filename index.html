@@ -63,6 +63,15 @@
         </button>
         <input type="file" id="importFileInput" accept=".json" style="display: none;">
 
+        <button id="openSyncModalBtn" class="btn btn-secondary btn-sync" title="Sync across Mobile, Tablet & Laptop (بەستنەوەی ئامێرەکان)">
+          <span class="sync-dot not-configured" id="headerSyncIndicator"></span>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <span id="headerSyncText">📱 Sync Devices</span>
+        </button>
+
         <button id="openAddModalBtn" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -230,6 +239,27 @@
             Add Customer
           </button>
           <button id="loadSampleBtn" class="btn btn-ghost">Load Multi-Course Demo</button>
+        </div>
+
+        <!-- Mobile / Multi-Device Sync Callout Banner -->
+        <div class="empty-sync-callout" id="emptySyncCallout">
+          <div class="sync-callout-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <div class="sync-callout-content">
+            <h4>📱 بۆ بینینی زانیاریەکانی کۆمپیوتەر لەم مۆبایلەدا (Sync with Desktop):</h4>
+            <p>لەسەر کۆمپیوتەرەکەت کلیک لە دوگمەی <strong>📱 Sync Devices</strong> بکە و بە کامێرای ئەم مۆبایلە QR کۆدەکە سکان بکە یان بنکەی داتای کلاود ببەستەوە.</p>
+            <button type="button" id="emptySyncTriggerBtn" class="btn btn-secondary btn-sm">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              بەستنەوە بە کلاود / Connect Cloud Sync
+            </button>
+          </div>
         </div>
       </div>
 
@@ -607,12 +637,161 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       SYNC MODAL: Multi-Device Real-Time Cloud Synchronization & QR Pairing
+       ========================================================================== -->
+  <div id="syncModal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="syncModalTitle">
+    <div class="modal-container sync-modal-container">
+      <div class="modal-header">
+        <div>
+          <span class="modal-tag" id="syncModalTag">☁️ Real-Time Multi-Device Sync</span>
+          <h2 id="syncModalTitle" class="modal-title">بەستنەوەی مۆبایل و کۆمپیوتەر | Sync Devices</h2>
+          <p class="modal-desc">
+            Edit customers and photos on your phone or tablet, and see instant updates on your laptop!
+          </p>
+        </div>
+        <button id="closeSyncModalBtn" class="close-btn" aria-label="Close sync modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sync-modal-body">
+        <!-- Live Status Bar -->
+        <div class="sync-status-card" id="syncStatusCard">
+          <div class="sync-status-left">
+            <span class="status-orb not-configured" id="syncStatusOrb"></span>
+            <div>
+              <div class="sync-status-headline" id="syncStatusHeadline">Cloud Sync: Local Mode Only</div>
+              <div class="sync-status-detail" id="syncStatusDetail">Data is currently saved only in this browser's database.</div>
+            </div>
+          </div>
+          <button type="button" id="forceSyncNowBtn" class="btn btn-secondary btn-sm" style="display: none;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            Sync Now
+          </button>
+        </div>
+
+        <!-- Section 1: Device Pairing (Visible when Cloud is configured) -->
+        <div class="sync-pairing-section" id="syncPairingSection" style="display: none;">
+          <div class="sync-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Instant Pairing with Phone or Tablet (سکان بە کامێرا)</span>
+          </div>
+          <p class="sync-instruction-text">
+            Open the Camera on your iPhone, iPad, or Android phone and scan this QR code. It will open PayVault and link it automatically:
+          </p>
+
+          <div class="sync-qr-wrapper">
+            <div class="sync-qr-box">
+              <img id="syncQrCodeImg" src="" alt="Scan with phone camera to connect" class="sync-qr-img">
+              <div class="sync-qr-caption">📷 Scan with phone camera</div>
+            </div>
+
+            <div class="sync-link-container">
+              <label for="syncShareLinkInput" class="sync-input-label">Or copy this direct pairing link:</label>
+              <div class="sync-link-input-group">
+                <input type="text" id="syncShareLinkInput" class="form-input sync-link-input" readonly>
+                <button type="button" id="copySyncLinkBtn" class="btn btn-secondary btn-copy">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span id="copySyncLinkBtnText">Copy Link</span>
+                </button>
+              </div>
+              <p class="sync-help-sub">Send this link to yourself on WhatsApp, Telegram, or Viber and open it on your phone or tablet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Cloud Database Setup / Settings -->
+        <div class="sync-config-section">
+          <div class="sync-section-title-wrap">
+            <div class="sync-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+              </svg>
+              <span>Firebase Cloud Database Setup</span>
+            </div>
+            <button type="button" id="toggleConfigGuideBtn" class="btn-text-link">How to setup in 1 min (Free) ▾</button>
+          </div>
+
+          <!-- Guide collapse -->
+          <div class="sync-guide-box" id="syncGuideBox" style="display: none;">
+            <h4>چۆنیەتی دروستکردنی بنکەی داتای بەلاش لە Firebase (Free Forever):</h4>
+            <ol>
+              <li>بڕۆ بۆ <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a> بە هەژماری گووگڵت.</li>
+              <li>کلیک لە <strong>Create a project</strong> بکە و ناوێکی لێ بنێ (وەک: <em>payvault-courses</em>).</li>
+              <li>لە بەشی چەپ بچۆ بۆ <strong>Build &gt; Realtime Database</strong> و کلیک لە <strong>Create Database</strong> بکە (لە هەنگاوی Rules، بیخەرە سەر <strong>Start in test mode</strong>).</li>
+              <li>لینکەکەی (Database URL) لە خوارەوە بنووسە و کلیک لە <strong>Save &amp; Connect</strong> بکە.</li>
+            </ol>
+          </div>
+
+          <form id="syncConfigForm" class="sync-form">
+            <div class="form-group">
+              <label for="syncDbUrlInput" class="form-label">Database URL <span class="required">*</span></label>
+              <input type="url" id="syncDbUrlInput" class="form-input" placeholder="https://your-project-default-rtdb.firebaseio.com" required>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="syncApiKeyInput" class="form-label">API Key (Optional / recommended)</label>
+                <input type="text" id="syncApiKeyInput" class="form-input" placeholder="AIzaSy...">
+              </div>
+              <div class="form-group">
+                <label for="syncProjectIdInput" class="form-label">Project ID (Optional)</label>
+                <input type="text" id="syncProjectIdInput" class="form-input" placeholder="my-payvault-project">
+              </div>
+            </div>
+
+            <div class="sync-form-actions">
+              <button type="submit" id="saveSyncConfigBtn" class="btn btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save & Connect Cloud
+              </button>
+
+              <button type="button" id="uploadLocalDataBtn" class="btn btn-secondary" style="display: none;" title="Upload current courses & students from this device to cloud">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload Device Data to Cloud
+              </button>
+
+              <button type="button" id="disconnectSyncBtn" class="btn btn-danger-ghost" style="display: none;">
+                Disconnect
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast" role="alert" aria-live="polite">
     <div id="toastIcon" class="toast-icon"></div>
     <span id="toastMsg" class="toast-message">Record saved successfully</span>
   </div>
 
+  <!-- Firebase Realtime Database SDK for Multi-Device Real-Time Cloud Sync -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
