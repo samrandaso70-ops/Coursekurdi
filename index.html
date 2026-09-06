@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>دەفتەری کۆرسەکان | Multi-Course & Multi-Year Customer Payment Database</title>
+  <title>PayVault | Multi-Course & Multi-Year Customer Payment Database</title>
   <meta name="description" content="Manage customer and student payment records across multiple courses and academic years. Real-time money and enrollment calculations with payment proof photos.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,8 +26,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="brand-title">دەفتەری کۆرسەکان</h1>
-          <p class="brand-subtitle">خەزنەی زانیاری قوتابیان و کۆرسەکان</p>
+          <h1 class="brand-title" id="brandTitle">PayVault</h1>
+          <p class="brand-subtitle" id="brandSubtitle">Multi-Course & Multi-Year Customer Payment Database</p>
         </div>
       </div>
 
@@ -41,7 +41,7 @@
             <line x1="12" y1="14" x2="12" y2="18"></line>
             <line x1="10" y1="16" x2="14" y2="16"></line>
           </svg>
-          + New Course
+          <span id="newCourseBtnText">+ New Course</span>
         </button>
 
         <button id="exportBtn" class="btn btn-secondary" title="Export complete database backup">
@@ -50,7 +50,7 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          Export
+          <span id="exportBtnText">Export</span>
         </button>
 
         <button id="importTriggerBtn" class="btn btn-secondary" title="Import database backup">
@@ -59,11 +59,11 @@
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
-          Import
+          <span id="importBtnText">Import</span>
         </button>
         <input type="file" id="importFileInput" accept=".json" style="display: none;">
 
-        <button id="openSyncModalBtn" class="btn btn-secondary btn-sync" title="Sync across Mobile, Tablet & Laptop (بەستنەوەی ئامێرەکان)">
+        <button id="openSyncModalBtn" class="btn btn-secondary btn-sync" title="Sync across Mobile, Tablet & Laptop">
           <span class="sync-dot not-configured" id="headerSyncIndicator"></span>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
@@ -77,7 +77,7 @@
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Add Customer
+          <span id="addCustomerBtnText">Add Customer</span>
         </button>
       </div>
     </header>
@@ -86,9 +86,9 @@
     <section class="course-nav-bar">
       <div class="course-nav-header">
         <div class="nav-label-wrap">
-          <span class="nav-label">Filter by Year:</span>
+          <span class="nav-label" id="filterYearLabel">Filter by Year:</span>
           <div id="yearFilterGroup" class="year-chips-group">
-            <button class="year-chip active" data-year="all">All Years</button>
+            <button class="year-chip active" data-year="all" id="allYearsChip">All Years</button>
             <!-- Dynamic Year Chips (e.g. 2024, 2025, 2026) -->
           </div>
         </div>
@@ -98,7 +98,7 @@
       <div class="course-tabs-wrapper">
         <div id="courseTabsList" class="course-tabs-list">
           <button class="course-tab active" data-course-id="all">
-            <span class="tab-title">All Courses Overview</span>
+            <span class="tab-title" id="allCoursesTabTitle">All Courses Overview</span>
             <span class="tab-count" id="allCoursesCountBadge">0</span>
           </button>
           <!-- Dynamic Course Tabs injected here -->
@@ -121,14 +121,14 @@
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-          Edit Course Name
+          <span id="editCourseBtnText">Edit Course Name</span>
         </button>
         <button id="deleteCourseBtn" class="btn btn-ghost btn-danger-ghost" title="Delete this entire course recorder">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
-          Delete Course
+          <span id="deleteCourseBtnText">Delete Course</span>
         </button>
       </div>
     </div>
@@ -170,7 +170,7 @@
           </svg>
         </div>
         <div class="stat-info">
-          <span class="stat-label">Average Payment</span>
+          <span class="stat-label" id="statAvgLabel">Average Payment</span>
           <h2 class="stat-value" id="statAverageAmount">$0.00</h2>
         </div>
       </div>
@@ -179,8 +179,8 @@
     <!-- Course Cards Overview Grid (Visible when "All Courses" is selected) -->
     <div id="allCoursesOverviewSection" class="courses-overview-section" style="display: none;">
       <div class="section-header-compact">
-        <h3 class="overview-heading">Course Breakdown (Years & Course Types)</h3>
-        <p class="overview-sub">Click any course to view its individual payment records</p>
+        <h3 class="overview-heading" id="courseBreakdownTitle">Course Breakdown (Years & Course Types)</h3>
+        <p class="overview-sub" id="courseBreakdownDesc">Click any course to view its individual payment records</p>
       </div>
       <div id="courseBreakdownGrid" class="course-breakdown-grid">
         <!-- Dynamic course summary cards injected here -->
@@ -199,13 +199,13 @@
       </div>
 
       <div class="filter-controls">
-        <label for="sortSelect" class="sort-label">Sort by:</label>
+        <label for="sortSelect" class="sort-label" id="sortLabel">Sort by:</label>
         <select id="sortSelect" class="select-dropdown">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First (Entry #1)</option>
-          <option value="amount-high">Amount (Highest)</option>
-          <option value="amount-low">Amount (Lowest)</option>
-          <option value="name-az">Customer Name (A-Z)</option>
+          <option value="newest" id="optSortNewest">Newest First</option>
+          <option value="oldest" id="optSortOldest">Oldest First</option>
+          <option value="amount-high" id="optSortAmountHigh">Amount (Highest)</option>
+          <option value="amount-low" id="optSortAmountLow">Amount (Lowest)</option>
+          <option value="name-az" id="optSortNameAZ">Customer Name (A-Z)</option>
         </select>
       </div>
     </section>
@@ -217,7 +217,7 @@
           <h2 class="section-title" id="recordsSectionTitle">Customer Payment Entries</h2>
           <span class="badge" id="recordCountBadge">0 Records</span>
         </div>
-        <p class="section-subtitle">Click on any record or its picture to inspect payment proof</p>
+        <p class="section-subtitle" id="recordsSectionSubtitle">Click on any record or its picture to inspect payment proof</p>
       </div>
 
       <!-- Empty State -->
@@ -236,9 +236,9 @@
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Add Customer
+            <span id="emptyAddBtnText">Add Customer</span>
           </button>
-          <button id="loadSampleBtn" class="btn btn-ghost">Load Multi-Course Demo</button>
+          <button id="loadSampleBtn" class="btn btn-ghost"><span id="loadSampleBtnText">Load Multi-Course Demo</span></button>
         </div>
 
         <!-- Mobile / Multi-Device Sync Callout Banner -->
@@ -250,14 +250,14 @@
             </svg>
           </div>
           <div class="sync-callout-content">
-            <h4>📱 بۆ بینینی زانیاریەکانی کۆمپیوتەر لەم مۆبایلەدا (Sync with Desktop):</h4>
-            <p>لەسەر کۆمپیوتەرەکەت کلیک لە دوگمەی <strong>📱 Sync Devices</strong> بکە و بە کامێرای ئەم مۆبایلە QR کۆدەکە سکان بکە یان بنکەی داتای کلاود ببەستەوە.</p>
+            <h4 id="emptySyncCalloutTitle">📱 Sync with Desktop Computer:</h4>
+            <p id="emptySyncCalloutDesc">On your desktop computer, click <strong>📱 Sync Devices</strong> and scan the QR code with your phone camera, or connect to the cloud database.</p>
             <button type="button" id="emptySyncTriggerBtn" class="btn btn-secondary btn-sm">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
               </svg>
-              بەستنەوە بە کلاود / Connect Cloud Sync
+              <span id="emptySyncTriggerBtnText">Connect Cloud Sync</span>
             </button>
           </div>
         </div>
@@ -268,13 +268,13 @@
         <table class="records-table">
           <thead>
             <tr>
-              <th style="width: 70px;">No.</th>
-              <th>Customer / Student</th>
+              <th style="width: 70px;" id="colHeaderNo">No.</th>
+              <th id="colHeaderCustomer">Customer / Student</th>
               <th id="courseColumnHeader">Course & Year</th>
-              <th>Amount Paid</th>
-              <th style="min-width: 120px;">Photos (1 &amp; 2)</th>
-              <th>Date Added</th>
-              <th style="width: 130px; text-align: right;">Actions</th>
+              <th id="colHeaderAmount">Amount Paid</th>
+              <th style="min-width: 120px;" id="colHeaderPhotos">Photos (1 &amp; 2)</th>
+              <th id="colHeaderDate">Date Added</th>
+              <th style="width: 130px; text-align: right;" id="colHeaderActions">Actions</th>
             </tr>
           </thead>
           <tbody id="recordsTableBody">
@@ -316,8 +316,8 @@
               </svg>
             </div>
             <div>
-              <label for="customerCourseSelect" class="form-section-title">Course Recorder</label>
-              <p class="form-section-desc">Select which course and year to record this payment in</p>
+              <label for="customerCourseSelect" class="form-section-title" id="lblCourseRecorder">Course Recorder</label>
+              <p class="form-section-desc" id="lblCourseRecorderDesc">Select which course and year to record this payment in</p>
             </div>
           </div>
           <div class="select-wrapper">
@@ -332,8 +332,8 @@
           <div class="form-section-header">
             <span class="step-badge">1</span>
             <div>
-              <label for="customerNameInput" class="form-section-title">Customer / Student Name</label>
-              <p class="form-section-desc">Enter the full name of the customer</p>
+              <label for="customerNameInput" class="form-section-title" id="lblCustomerName">Customer / Student Name</label>
+              <p class="form-section-desc" id="lblCustomerNameDesc">Enter the full name of the customer</p>
             </div>
           </div>
           <div class="input-wrapper">
@@ -358,20 +358,20 @@
           <div class="form-section-header">
             <span class="step-badge">2</span>
             <div>
-              <label for="amountInput" class="form-section-title">Amount Paid</label>
-              <p class="form-section-desc">Specify the total money sent or transferred</p>
+              <label for="amountInput" class="form-section-title" id="lblAmountPaid">Amount Paid</label>
+              <p class="form-section-desc" id="lblAmountPaidDesc">Specify the total money sent or transferred</p>
             </div>
           </div>
           <div class="amount-input-group">
             <div class="currency-select-wrapper">
               <select id="currencySelect" class="currency-select">
-                <option value="IQD" selected>IQD (ع.د - Iraqi Dinar)</option>
-                <option value="KWD">KWD (د.ك - Kuwaiti Dinar)</option>
-                <option value="JOD">JOD (د.أ - Jordanian Dinar)</option>
-                <option value="BHD">BHD (د.ب - Bahraini Dinar)</option>
-                <option value="LYD">LYD (د.ل - Libyan Dinar)</option>
-                <option value="TND">TND (د.ت - Tunisian Dinar)</option>
-                <option value="DZD">DZD (د.ج - Algerian Dinar)</option>
+                <option value="IQD" selected>IQD (Iraqi Dinar)</option>
+                <option value="KWD">KWD (Kuwaiti Dinar)</option>
+                <option value="JOD">JOD (Jordanian Dinar)</option>
+                <option value="BHD">BHD (Bahraini Dinar)</option>
+                <option value="LYD">LYD (Libyan Dinar)</option>
+                <option value="TND">TND (Tunisian Dinar)</option>
+                <option value="DZD">DZD (Algerian Dinar)</option>
                 <option value="$">$ (USD - Dollar)</option>
                 <option value="€">€ (EUR - Euro)</option>
                 <option value="£">£ (GBP - Pound)</option>
@@ -399,8 +399,8 @@
           <div class="form-section-header">
             <span class="step-badge">3</span>
             <div>
-              <label class="form-section-title">Picture of the Money / Receipt (وێنەی یەکەم)</label>
-              <p class="form-section-desc">Upload primary photo: cash, transfer receipt, or proof of payment</p>
+              <label class="form-section-title" id="lblPhoto1Title">Picture of the Money / Receipt (Primary Photo)</label>
+              <p class="form-section-desc" id="lblPhoto1Desc">Upload primary photo: cash, transfer receipt, or proof of payment</p>
             </div>
           </div>
 
@@ -445,8 +445,8 @@
           <div class="form-section-header">
             <span class="step-badge step-badge-purple">4</span>
             <div>
-              <label class="form-section-title">Second Photo / Additional Document (وێنەی دووەم)</label>
-              <p class="form-section-desc">Upload additional photo: student ID, second receipt, note, or contract</p>
+              <label class="form-section-title" id="lblPhoto2Title">Second Photo / Additional Document</label>
+              <p class="form-section-desc" id="lblPhoto2Desc">Upload additional photo: student ID, second receipt, note, or contract</p>
             </div>
           </div>
 
@@ -464,9 +464,9 @@
                 </svg>
               </div>
               <p class="upload-text-main">
-                <span class="text-accent text-accent-purple">Click to choose photo 2</span> or drag & drop here
+                <span class="text-accent text-accent-purple" id="lblPhoto2Choose">Click to choose photo 2</span> <span id="lblPhoto2Or">or drag & drop here</span>
               </p>
-              <p class="upload-text-sub">PNG, JPG, WEBP, or GIF (Student ID, contract, second proof)</p>
+              <p class="upload-text-sub" id="lblPhoto2Sub">PNG, JPG, WEBP, or GIF (Student ID, contract, second proof)</p>
             </div>
 
             <!-- Preview Box 2 (Hidden until image selected) -->
@@ -488,20 +488,20 @@
 
         <!-- Optional Details -->
         <div class="optional-details-group">
-          <label for="notesInput" class="notes-label">Optional Note or Payment Method</label>
+          <label for="notesInput" class="notes-label" id="lblNotes">Optional Note or Payment Method</label>
           <input type="text" id="notesInput" class="form-input-subtle" placeholder="e.g. Bank transfer, Cash in person, Tuition Installment #1...">
         </div>
 
         <!-- Modal Footer Actions -->
         <div class="modal-footer">
-          <button type="button" id="cancelModalBtn" class="btn btn-ghost">Cancel</button>
+          <button type="button" id="cancelModalBtn" class="btn btn-ghost"><span id="cancelModalBtnText">Cancel</span></button>
           <button type="submit" id="saveRecordBtn" class="btn btn-primary btn-save">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
             </svg>
-            Save Customer Entry
+            <span id="saveRecordBtnText">Save Customer Entry</span>
           </button>
         </div>
       </form>
@@ -533,8 +533,8 @@
           <div class="form-section-header">
             <span class="step-badge step-badge-course">📅</span>
             <div>
-              <label for="courseYearInput" class="form-section-title">Academic Year</label>
-              <p class="form-section-desc">The year for this course cohort</p>
+              <label for="courseYearInput" class="form-section-title" id="lblCourseYear">Academic Year</label>
+              <p class="form-section-desc" id="lblCourseYearDesc">The year for this course cohort</p>
             </div>
           </div>
           <div class="input-wrapper">
@@ -556,8 +556,8 @@
           <div class="form-section-header">
             <span class="step-badge step-badge-course">🎓</span>
             <div>
-              <label for="courseNameInput" class="form-section-title">Course Name / Type</label>
-              <p class="form-section-desc">The title or program of study</p>
+              <label for="courseNameInput" class="form-section-title" id="lblCourseName">Course Name / Type</label>
+              <p class="form-section-desc" id="lblCourseNameDesc">The title or program of study</p>
             </div>
           </div>
           <div class="input-wrapper">
@@ -577,8 +577,8 @@
           <div class="form-section-header">
             <span class="step-badge step-badge-course">🏷️</span>
             <div>
-              <label for="courseCategoryInput" class="form-section-title">Category</label>
-              <p class="form-section-desc">Discipline or type of program</p>
+              <label for="courseCategoryInput" class="form-section-title" id="lblCourseCategory">Category</label>
+              <p class="form-section-desc" id="lblCourseCategoryDesc">Discipline or type of program</p>
             </div>
           </div>
           <div class="input-wrapper">
@@ -594,7 +594,7 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" id="cancelCourseModalBtn" class="btn btn-ghost">Cancel</button>
+          <button type="button" id="cancelCourseModalBtn" class="btn btn-ghost"><span id="cancelCourseModalBtnText">Cancel</span></button>
           <button type="submit" id="saveCourseBtn" class="btn btn-primary btn-save">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -645,7 +645,7 @@
       <div class="modal-header">
         <div>
           <span class="modal-tag" id="syncModalTag">☁️ Real-Time Multi-Device Sync</span>
-          <h2 id="syncModalTitle" class="modal-title">بەستنەوەی مۆبایل و کۆمپیوتەر | Sync Devices</h2>
+          <h2 id="syncModalTitle" class="modal-title">Sync Mobile &amp; Desktop Devices</h2>
           <p class="modal-desc">
             Edit customers and photos on your phone or tablet, and see instant updates on your laptop!
           </p>
@@ -685,7 +685,7 @@
               <rect x="14" y="14" width="7" height="7"></rect>
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
-            <span>Instant Pairing with Phone or Tablet (سکان بە کامێرا)</span>
+            <span>Instant Pairing with Phone or Tablet (Camera QR Scan)</span>
           </div>
           <p class="sync-instruction-text">
             Open the Camera on your iPhone, iPad, or Android phone and scan this QR code. It will open PayVault and link it automatically:
@@ -728,12 +728,12 @@
 
           <!-- Guide collapse -->
           <div class="sync-guide-box" id="syncGuideBox" style="display: none;">
-            <h4>چۆنیەتی دروستکردنی بنکەی داتای بەلاش لە Firebase (Free Forever):</h4>
+            <h4>How to Create Your Free Firebase Database (Free Forever):</h4>
             <ol>
-              <li>بڕۆ بۆ <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a> بە هەژماری گووگڵت.</li>
-              <li>کلیک لە <strong>Create a project</strong> بکە و ناوێکی لێ بنێ (وەک: <em>payvault-courses</em>).</li>
-              <li>لە بەشی چەپ بچۆ بۆ <strong>Build &gt; Realtime Database</strong> و کلیک لە <strong>Create Database</strong> بکە (لە هەنگاوی Rules، بیخەرە سەر <strong>Start in test mode</strong>).</li>
-              <li>لینکەکەی (Database URL) لە خوارەوە بنووسە و کلیک لە <strong>Save &amp; Connect</strong> بکە.</li>
+              <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">Firebase Console</a> with your Google account.</li>
+              <li>Click <strong>Create a project</strong> and give it a name (e.g. <em>payvault-courses</em>).</li>
+              <li>In the left sidebar, navigate to <strong>Build &gt; Realtime Database</strong> and click <strong>Create Database</strong> (under Security Rules, choose <strong>Start in test mode</strong>).</li>
+              <li>Copy the Database URL and paste it below, then click <strong>Save &amp; Connect Cloud</strong>.</li>
             </ol>
           </div>
 

@@ -785,7 +785,7 @@ function openCourseModal(mode = 'create', courseId = null) {
     const course = state.courses.find(c => c.id === courseId);
     if (!course) return;
     courseEditIdInput.value = course.id;
-    courseModalTag.textContent = 'Edit Course Details (دەستکاری ناوی کۆرس)';
+    courseModalTag.textContent = 'Edit Course Details';
     courseModalTitle.textContent = `Edit Course: ${course.name}`;
     courseYearInput.value = course.year;
     courseNameInput.value = course.name;
