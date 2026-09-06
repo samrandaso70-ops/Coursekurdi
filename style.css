@@ -1646,43 +1646,742 @@ body {
   box-shadow: 0 0 10px #2563EB;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* ==========================================================================
+   RESPONSIVE DESIGN SYSTEM (Mobile, Tablet, Desktop)
+   ========================================================================== */
+
+/* Smooth touch scrolling & tap optimizations */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+.course-tabs-wrapper,
+.year-chips-group,
+.table-container,
+.modal-form {
+  -webkit-overflow-scrolling: touch;
+}
+
+button, .btn, .year-chip, .course-tab, .btn-icon-action, .btn-card-edit {
+  touch-action: manipulation;
+}
+
+/* --------------------------------------------------------------------------
+   1. TABLET BREAKPOINT (681px to 1024px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 681px) and (max-width: 1024px) {
   .app-container {
-    padding: 20px 16px 60px;
+    padding: 24px 20px 70px;
   }
 
   .app-header {
-    flex-direction: column;
-    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .brand-title {
+    font-size: 23px;
   }
 
   .header-actions {
-    width: 100%;
-    justify-content: space-between;
+    gap: 8px;
   }
 
   .header-actions .btn {
-    flex: 1;
-    padding: 8px 12px;
+    padding: 9px 13px;
     font-size: 13px;
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
   }
 
+  .stat-card {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .course-breakdown-grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+  }
+
+  /* Tablet Table: smooth horizontal scroll with min-width */
+  .table-container {
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+  }
+
+  .records-table {
+    min-width: 720px;
+  }
+
+  .modal-card {
+    max-width: 520px;
+    max-height: 88vh;
+  }
+
+  .lightbox-content {
+    max-width: 90vw;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. MOBILE BREAKPOINT (<= 680px) - Handheld Smartphones
+   -------------------------------------------------------------------------- */
+@media (max-width: 680px) {
+  .app-container {
+    padding: 16px 12px 60px;
+  }
+
+  /* Header & Branding */
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .brand {
+    gap: 12px;
+  }
+
+  .brand-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .brand-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .brand-title {
+    font-size: 21px;
+    letter-spacing: -0.3px;
+  }
+
+  .brand-subtitle {
+    font-size: 12px;
+  }
+
+  /* Header Action Buttons in 2x2 grid */
+  .header-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13px;
+    justify-content: center;
+  }
+
+  /* Course Navigation Bar */
+  .course-nav-bar {
+    padding: 14px;
+    margin-bottom: 18px;
+    border-radius: var(--radius-md);
+  }
+
+  .nav-label-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .nav-label {
+    font-size: 11.5px;
+  }
+
+  .year-chips-group {
+    display: flex;
+    overflow-x: auto;
+    width: 100%;
+    gap: 6px;
+    padding-bottom: 4px;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .year-chips-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .year-chip {
+    padding: 6px 14px;
+    min-height: 38px;
+    font-size: 12.5px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .course-tabs-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .course-tabs-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+
+  .course-tabs-list {
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: max-content;
+  }
+
+  .course-tab {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 42px;
+    flex-shrink: 0;
+  }
+
+  /* Active Course Header Banner */
+  .active-course-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    margin-bottom: 18px;
+    border-radius: var(--radius-md);
+  }
+
+  .banner-tag-row {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .banner-year-tag,
+  .banner-category-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .banner-title {
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .banner-actions {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .btn-edit-course,
+  #deleteCourseBtn {
+    flex: 1;
+    justify-content: center;
+    min-height: 42px;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  /* Stats Summary Grid (Stacked on Mobile) */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 14px 16px;
+    gap: 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .stat-value {
+    font-size: 21px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  /* Course Breakdown Grid */
+  .course-breakdown-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .course-card {
+    padding: 14px 16px;
+  }
+
+  /* Search & Controls Bar */
   .controls-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .search-box {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .search-box input {
+    height: 44px;
+    font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
+    padding-left: 38px;
   }
 
   .filter-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .sort-label {
+    font-size: 12.5px;
+    flex-shrink: 0;
+  }
+
+  .select-dropdown {
+    flex: 1;
+    height: 44px;
+    font-size: 15px;
+    min-width: 0;
+  }
+
+  /* Section Header */
+  .section-header {
+    margin-bottom: 14px;
+  }
+
+  .section-title-wrap {
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+  }
+
+  /* Empty State on Mobile */
+  .empty-state {
+    padding: 32px 16px;
+  }
+
+  .empty-state h3 {
+    font-size: 18px;
+  }
+
+  .empty-state p {
+    font-size: 13px;
+  }
+
+  .empty-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .empty-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* --------------------------------------------------------------------------
+     MOBILE RECORDS LIST: CARD TRANSFORMATION
+     Transforms table rows into clean, receipt-style mobile cards
+     -------------------------------------------------------------------------- */
+  .table-container {
+    overflow-x: visible;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .records-table {
+    display: block;
+    width: 100%;
+    border-spacing: 0;
+  }
+
+  .records-table thead {
+    display: none;
+  }
+
+  .records-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .records-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  }
+
+  .records-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    border: none !important;
+    width: 100%;
+  }
+
+  /* Row 1: Student info (hidden sequential table index cell, shown inside card) */
+  .records-table td:nth-child(1) {
+    display: none;
+  }
+
+  .records-table td:nth-child(2) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #F1F5F9 !important;
+  }
+
+  .customer-cell {
+    gap: 10px;
+  }
+
+  .avatar-circle {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .customer-name-text {
+    font-size: 14.5px;
+  }
+
+  .customer-note-text {
+    font-size: 11.5px;
+  }
+
+  /* Row 2: Course pill */
+  .records-table td:nth-child(3) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .course-table-pill {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  /* Row 3: Amount Paid */
+  .records-table td:nth-child(4) {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
   }
 
-  .records-table th:nth-child(6),
+  .records-table td:nth-child(4)::before {
+    content: "Amount Paid:";
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .amount-badge {
+    font-size: 14px;
+    padding: 4px 12px;
+  }
+
+  /* Row 4: Photos (1 & 2) */
+  .records-table td:nth-child(5) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .records-table td:nth-child(5)::before {
+    content: "Photos (1 & 2):";
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .receipt-thumb-wrap {
+    width: 58px;
+    height: 44px;
+  }
+
+  /* Row 5: Date Added */
   .records-table td:nth-child(6) {
-    display: none;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+
+  .records-table td:nth-child(6)::before {
+    content: "Date Added:";
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Row 6: Action Buttons (Footer bar of card) */
+  .records-table td:nth-child(7) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px !important;
+    border-top: 1px dashed var(--border-subtle) !important;
+    margin-top: 4px;
+  }
+
+  .records-table td:nth-child(7)::before {
+    content: "Actions:";
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .action-buttons-wrap {
+    gap: 8px;
+  }
+
+  .btn-icon-action {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* --------------------------------------------------------------------------
+     MODAL DIALOGS ON MOBILE (Full Screen Sheet)
+     -------------------------------------------------------------------------- */
+  .modal-backdrop {
+    padding: 8px;
+    align-items: center;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    width: 100%;
+    max-height: 94vh;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-header {
+    padding: 14px 18px;
+  }
+
+  .modal-title {
+    font-size: 17.5px;
+  }
+
+  .modal-form {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+
+  .form-section {
+    padding: 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .form-section-title {
+    font-size: 14px;
+  }
+
+  .form-section-desc {
+    font-size: 11.5px;
+  }
+
+  .form-input {
+    font-size: 16px !important; /* Critical: prevent iOS viewport zoom */
+    min-height: 44px;
+    padding: 10px 12px 10px 38px;
+  }
+
+  .form-select-styled {
+    padding-left: 12px;
+  }
+
+  .amount-input-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .currency-select-wrapper {
+    width: 100%;
+  }
+
+  .currency-select {
+    width: 100%;
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .upload-dropzone {
+    padding: 16px 12px;
+  }
+
+  .upload-icon-circle {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 8px;
+  }
+
+  .upload-text-main {
+    font-size: 13px;
+  }
+
+  .upload-text-sub {
+    font-size: 11px;
+  }
+
+  .image-preview-box {
+    max-height: 180px;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+    width: 100%;
+    padding-top: 4px;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  /* --------------------------------------------------------------------------
+     LIGHTBOX ON MOBILE
+     -------------------------------------------------------------------------- */
+  .lightbox-backdrop {
+    padding: 10px;
+  }
+
+  .lightbox-content {
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-md);
+  }
+
+  .lightbox-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .lightbox-title {
+    font-size: 16px;
+  }
+
+  .lightbox-subtitle {
+    font-size: 13.5px;
+  }
+
+  .lightbox-switcher {
+    width: 100%;
+    order: 3;
+    justify-content: center;
+  }
+
+  .lightbox-switch-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .lightbox-body {
+    padding: 10px;
+    max-height: 60vh;
+  }
+
+  .lightbox-body img {
+    max-height: 55vh;
+  }
+
+  /* Toast on Mobile */
+  .toast {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    max-width: calc(100% - 28px);
+    justify-content: center;
+    text-align: center;
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   3. EXTRA SMALL SCREENS (<= 360px) - Compact Mobile Phones
+   -------------------------------------------------------------------------- */
+@media (max-width: 360px) {
+  .header-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-title {
+    font-size: 19px;
+  }
+
+  .banner-actions {
+    flex-direction: column;
+  }
+}
+
