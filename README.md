@@ -26,15 +26,9 @@ A simple, fast, and persistent web application database to keep track of custome
   - Rename any course ledger directly from the top banner or overview breakdown cards.
   - Automatically updates across all tabs, cards, banners, and student payment entries.
 
-- **📱 Real-Time Multi-Device Cloud Sync**:
-  - Keep customer names, payments, dual photos, and courses **100% synchronized across Mobile, Tablet, and Laptop**.
-  - Edit or add payment receipts on your phone or tablet; changes appear instantly on your laptop without refreshing!
-  - 📷 **Instant QR Code Camera Pairing**: Open the camera on your phone/tablet and point it at your laptop screen to link devices in 1 second.
-  - Powered by Firebase Realtime Database with local IndexedDB offline caching.
-
-- **Persistent Database (Local & Cloud Mirror)**:
-  - Stored inside local persistent database (`PayVaultDB`) for 0ms instant loading, with automated cloud synchronization.
-  - Works offline and syncs automatically when connection is restored.
+- **Persistent Database (IndexedDB)**:
+  - Stored inside your browser's persistent database (`PayVaultDB`).
+  - Never lost on refresh; works 100% offline with zero server costs or quota bottlenecks.
 
 - **Full-Screen Multi-Photo Lightbox**:
   - Click any customer's photo thumbnail to inspect in high resolution.
