@@ -107,6 +107,13 @@
         <h2 class="banner-title" id="bannerTitle">Course Name</h2>
       </div>
       <div class="banner-actions">
+        <button id="editCourseBtn" class="btn btn-secondary btn-edit-course" title="Edit course name, year, or category">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Edit Course Name
+        </button>
         <button id="deleteCourseBtn" class="btn btn-ghost btn-danger-ghost" title="Delete this entire course recorder">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -235,7 +242,7 @@
               <th>Customer / Student</th>
               <th id="courseColumnHeader">Course & Year</th>
               <th>Amount Paid</th>
-              <th>Picture of Money</th>
+              <th style="min-width: 120px;">Photos (1 &amp; 2)</th>
               <th>Date Added</th>
               <th style="width: 130px; text-align: right;">Actions</th>
             </tr>
@@ -357,17 +364,17 @@
           <span class="form-error" id="amountError">Please enter a valid payment amount</span>
         </div>
 
-        <!-- SECTION 3: Picture of the Money -->
+        <!-- SECTION 3: Primary Photo (Money / Receipt) -->
         <div class="form-section">
           <div class="form-section-header">
             <span class="step-badge">3</span>
             <div>
-              <label class="form-section-title">Picture of the Money / Receipt</label>
-              <p class="form-section-desc">Upload a photo of the cash, transfer receipt, or proof of payment</p>
+              <label class="form-section-title">Picture of the Money / Receipt (وێنەی یەکەم)</label>
+              <p class="form-section-desc">Upload primary photo: cash, transfer receipt, or proof of payment</p>
             </div>
           </div>
 
-          <!-- Upload Drop Zone -->
+          <!-- Upload Drop Zone 1 -->
           <div id="dropZone" class="upload-dropzone">
             <input type="file" id="imageFileInput" accept="image/*" class="file-input-hidden">
             
@@ -381,17 +388,63 @@
                 </svg>
               </div>
               <p class="upload-text-main">
-                <span class="text-accent">Click to choose image</span> or drag & drop here
+                <span class="text-accent">Click to choose photo 1</span> or drag & drop here
               </p>
               <p class="upload-text-sub">PNG, JPG, WEBP, or GIF (Receipt / Cash photo). Paste with Ctrl+V supported.</p>
             </div>
 
-            <!-- Preview Box (Hidden until image selected) -->
+            <!-- Preview Box 1 (Hidden until image selected) -->
             <div id="imagePreviewBox" class="image-preview-box" style="display: none;">
               <img id="previewImg" src="" alt="Payment proof preview">
               <div class="preview-overlay">
-                <span class="preview-badge">Payment Photo Ready</span>
+                <span class="preview-badge">Primary Photo Ready</span>
                 <button type="button" id="removeImageBtn" class="btn-remove-img" title="Remove image">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  Remove & Replace
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: Second Photo / Additional Document -->
+        <div class="form-section form-section-photo2">
+          <div class="form-section-header">
+            <span class="step-badge step-badge-purple">4</span>
+            <div>
+              <label class="form-section-title">Second Photo / Additional Document (وێنەی دووەم)</label>
+              <p class="form-section-desc">Upload additional photo: student ID, second receipt, note, or contract</p>
+            </div>
+          </div>
+
+          <!-- Upload Drop Zone 2 -->
+          <div id="dropZone2" class="upload-dropzone">
+            <input type="file" id="imageFileInput2" accept="image/*" class="file-input-hidden">
+            
+            <!-- Upload Placeholder 2 -->
+            <div id="uploadPlaceholder2" class="upload-placeholder">
+              <div class="upload-icon-circle upload-icon-circle-purple">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <p class="upload-text-main">
+                <span class="text-accent text-accent-purple">Click to choose photo 2</span> or drag & drop here
+              </p>
+              <p class="upload-text-sub">PNG, JPG, WEBP, or GIF (Student ID, contract, second proof)</p>
+            </div>
+
+            <!-- Preview Box 2 (Hidden until image selected) -->
+            <div id="imagePreviewBox2" class="image-preview-box" style="display: none;">
+              <img id="previewImg2" src="" alt="Second photo preview">
+              <div class="preview-overlay">
+                <span class="preview-badge preview-badge-purple">Second Photo Ready</span>
+                <button type="button" id="removeImageBtn2" class="btn-remove-img" title="Remove image">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -432,8 +485,8 @@
     <div class="modal-card modal-card-sm">
       <div class="modal-header">
         <div>
-          <span class="modal-tag">Course Management</span>
-          <h2 class="modal-title">Create New Course Recorder</h2>
+          <span class="modal-tag" id="courseModalTag">Course Management</span>
+          <h2 class="modal-title" id="courseModalTitle">Create New Course Recorder</h2>
         </div>
         <button id="closeCourseModalBtn" class="close-btn" aria-label="Close window">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -444,6 +497,7 @@
       </div>
 
       <form id="courseForm" class="modal-form" novalidate>
+        <input type="hidden" id="courseEditIdInput">
         <!-- Year Selection / Input -->
         <div class="form-section">
           <div class="form-section-header">
@@ -511,11 +565,11 @@
 
         <div class="modal-footer">
           <button type="button" id="cancelCourseModalBtn" class="btn btn-ghost">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-save">
+          <button type="submit" id="saveCourseBtn" class="btn btn-primary btn-save">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            Create Course Recorder
+            <span id="saveCourseBtnText">Create Course Recorder</span>
           </button>
         </div>
       </form>
@@ -531,6 +585,14 @@
         <div>
           <h3 id="lightboxCustomerName" class="lightbox-title">Customer Payment Photo</h3>
           <p id="lightboxAmount" class="lightbox-subtitle">$0.00</p>
+        </div>
+        <div id="lightboxPhotoSwitcher" class="lightbox-switcher" style="display: none;">
+          <button type="button" id="lightboxPhoto1Btn" class="lightbox-switch-btn active" title="View Primary Photo">
+            <span>📷 Photo 1</span>
+          </button>
+          <button type="button" id="lightboxPhoto2Btn" class="lightbox-switch-btn" title="View Second Photo / Document">
+            <span>📄 Photo 2</span>
+          </button>
         </div>
         <button id="closeLightboxBtn" class="close-btn" aria-label="Close photo">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

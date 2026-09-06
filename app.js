@@ -69,6 +69,17 @@ class Database {
     });
   }
 
+  static async updateCourse(course) {
+    const db = await Database.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_COURSES, 'readwrite');
+      const store = tx.objectStore(STORE_COURSES);
+      const request = store.put(course);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   static async deleteCourse(courseId) {
     const db = await Database.open();
     return new Promise((resolve, reject) => {
@@ -150,6 +161,10 @@ const state = {
   activeYear: 'all',     // 'all' or numeric string e.g. '2025', '2026'
   currentEditingCustomerId: null,
   currentImageBase64: null,
+  currentImage2Base64: null,
+  lastActiveDropZone: 1,
+  lightboxRecordId: null,
+  lightboxPhotoIndex: 1,
   searchQuery: '',
   sortBy: 'newest'
 };
@@ -163,6 +178,7 @@ const activeCourseBanner = document.getElementById('activeCourseBanner');
 const bannerYearTag = document.getElementById('bannerYearTag');
 const bannerCategoryTag = document.getElementById('bannerCategoryTag');
 const bannerTitle = document.getElementById('bannerTitle');
+const editCourseBtn = document.getElementById('editCourseBtn');
 const deleteCourseBtn = document.getElementById('deleteCourseBtn');
 
 const allCoursesOverviewSection = document.getElementById('allCoursesOverviewSection');
@@ -193,7 +209,7 @@ const notesInput = document.getElementById('notesInput');
 const nameError = document.getElementById('nameError');
 const amountError = document.getElementById('amountError');
 
-// Image upload
+// Image 1 upload
 const dropZone = document.getElementById('dropZone');
 const imageFileInput = document.getElementById('imageFileInput');
 const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -201,12 +217,24 @@ const imagePreviewBox = document.getElementById('imagePreviewBox');
 const previewImg = document.getElementById('previewImg');
 const removeImageBtn = document.getElementById('removeImageBtn');
 
+// Image 2 upload (Second Photo)
+const dropZone2 = document.getElementById('dropZone2');
+const imageFileInput2 = document.getElementById('imageFileInput2');
+const uploadPlaceholder2 = document.getElementById('uploadPlaceholder2');
+const imagePreviewBox2 = document.getElementById('imagePreviewBox2');
+const previewImg2 = document.getElementById('previewImg2');
+const removeImageBtn2 = document.getElementById('removeImageBtn2');
+
 // Course Modal Elements
 const openCourseModalBtn = document.getElementById('openCourseModalBtn');
 const courseModal = document.getElementById('courseModal');
 const closeCourseModalBtn = document.getElementById('closeCourseModalBtn');
 const cancelCourseModalBtn = document.getElementById('cancelCourseModalBtn');
 const courseForm = document.getElementById('courseForm');
+const courseModalTag = document.getElementById('courseModalTag');
+const courseModalTitle = document.getElementById('courseModalTitle');
+const courseEditIdInput = document.getElementById('courseEditIdInput');
+const saveCourseBtnText = document.getElementById('saveCourseBtnText');
 const courseYearInput = document.getElementById('courseYearInput');
 const courseNameInput = document.getElementById('courseNameInput');
 const courseCategoryInput = document.getElementById('courseCategoryInput');
@@ -240,15 +268,18 @@ const closeLightboxBtn = document.getElementById('closeLightboxBtn');
 const lightboxCustomerName = document.getElementById('lightboxCustomerName');
 const lightboxAmount = document.getElementById('lightboxAmount');
 const lightboxImg = document.getElementById('lightboxImg');
+const lightboxPhotoSwitcher = document.getElementById('lightboxPhotoSwitcher');
+const lightboxPhoto1Btn = document.getElementById('lightboxPhoto1Btn');
+const lightboxPhoto2Btn = document.getElementById('lightboxPhoto2Btn');
 
 // Toast
 const toast = document.getElementById('toast');
 const toastMsg = document.getElementById('toastMsg');
 
 // ==========================================================================
-// 3. Image Processing (File & Drag-Drop & Clipboard)
+// 3. Image Processing (File & Drag-Drop & Clipboard) - Dual Photo Support
 // ==========================================================================
-function processImageFile(file) {
+function processImageFile(file, photoNum = 1) {
   if (!file || !file.type.startsWith('image/')) {
     showToast('Please select a valid image file', 'error');
     return;
@@ -279,33 +310,49 @@ function processImageFile(file) {
       ctx.drawImage(img, 0, 0, width, height);
 
       const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.86);
-      setImagePreview(optimizedBase64);
+      setImagePreview(optimizedBase64, photoNum);
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-function setImagePreview(dataUrl) {
-  state.currentImageBase64 = dataUrl;
-  previewImg.src = dataUrl;
-  uploadPlaceholder.style.display = 'none';
-  imagePreviewBox.style.display = 'flex';
+function setImagePreview(dataUrl, photoNum = 1) {
+  if (photoNum === 1) {
+    state.currentImageBase64 = dataUrl;
+    previewImg.src = dataUrl;
+    uploadPlaceholder.style.display = 'none';
+    imagePreviewBox.style.display = 'flex';
+  } else {
+    state.currentImage2Base64 = dataUrl;
+    previewImg2.src = dataUrl;
+    uploadPlaceholder2.style.display = 'none';
+    imagePreviewBox2.style.display = 'flex';
+  }
 }
 
-function clearImagePreview() {
-  state.currentImageBase64 = null;
-  previewImg.src = '';
-  imageFileInput.value = '';
-  uploadPlaceholder.style.display = 'block';
-  imagePreviewBox.style.display = 'none';
+function clearImagePreview(photoNum = 1) {
+  if (photoNum === 1) {
+    state.currentImageBase64 = null;
+    previewImg.src = '';
+    imageFileInput.value = '';
+    uploadPlaceholder.style.display = 'block';
+    imagePreviewBox.style.display = 'none';
+  } else {
+    state.currentImage2Base64 = null;
+    previewImg2.src = '';
+    imageFileInput2.value = '';
+    uploadPlaceholder2.style.display = 'block';
+    imagePreviewBox2.style.display = 'none';
+  }
 }
 
-// Drag & Drop
+// Drag & Drop for Photo 1
 ['dragenter', 'dragover'].forEach(eventName => {
   dropZone.addEventListener(eventName, (e) => {
     e.preventDefault();
     e.stopPropagation();
+    state.lastActiveDropZone = 1;
     dropZone.classList.add('drag-over');
   });
 });
@@ -318,63 +365,134 @@ function clearImagePreview() {
   });
 });
 
+dropZone.addEventListener('mouseenter', () => { state.lastActiveDropZone = 1; });
 dropZone.addEventListener('drop', (e) => {
   const files = e.dataTransfer.files;
   if (files.length > 0) {
-    processImageFile(files[0]);
+    processImageFile(files[0], 1);
   }
 });
 
 imageFileInput.addEventListener('change', (e) => {
   if (e.target.files && e.target.files[0]) {
-    processImageFile(e.target.files[0]);
+    processImageFile(e.target.files[0], 1);
   }
 });
 
 removeImageBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  clearImagePreview();
+  clearImagePreview(1);
 });
 
-// Clipboard Paste support
+// Drag & Drop for Photo 2
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone2.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    state.lastActiveDropZone = 2;
+    dropZone2.classList.add('drag-over');
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone2.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone2.classList.remove('drag-over');
+  });
+});
+
+dropZone2.addEventListener('mouseenter', () => { state.lastActiveDropZone = 2; });
+dropZone2.addEventListener('drop', (e) => {
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    processImageFile(files[0], 2);
+  }
+});
+
+imageFileInput2.addEventListener('change', (e) => {
+  if (e.target.files && e.target.files[0]) {
+    processImageFile(e.target.files[0], 2);
+  }
+});
+
+removeImageBtn2.addEventListener('click', (e) => {
+  e.stopPropagation();
+  clearImagePreview(2);
+});
+
+// Clipboard Paste support (intelligently picks target slot)
 window.addEventListener('paste', (e) => {
   if (!customerModal.classList.contains('is-open')) return;
   const items = (e.clipboardData || e.originalEvent.clipboardData).items;
   for (let item of items) {
     if (item.kind === 'file' && item.type.startsWith('image/')) {
       const blob = item.getAsFile();
-      processImageFile(blob);
-      showToast('Image pasted from clipboard!');
+      let targetSlot = state.lastActiveDropZone || 1;
+      // If photo 1 is already filled and photo 2 is empty, place into photo 2
+      if (state.currentImageBase64 && !state.currentImage2Base64 && targetSlot === 1) {
+        targetSlot = 2;
+      }
+      processImageFile(blob, targetSlot);
+      showToast(`Image pasted into Photo ${targetSlot}!`);
       break;
     }
   }
 });
 
 // ==========================================================================
-// 4. Course Management (Creation & Deletion)
+// 4. Course Management (Creation, Renaming/Editing & Deletion)
 // ==========================================================================
-function openCourseModal() {
+function openCourseModal(mode = 'create', courseId = null) {
   courseYearError.classList.remove('is-visible');
   courseNameError.classList.remove('is-visible');
   courseForm.reset();
-  
-  // Pre-fill year based on current active year filter or current calendar year
-  const currentCalYear = new Date().getFullYear();
-  courseYearInput.value = (state.activeYear !== 'all') ? state.activeYear : currentCalYear;
-  
+
+  if (mode === 'edit' && courseId) {
+    const course = state.courses.find(c => c.id === courseId);
+    if (!course) return;
+    courseEditIdInput.value = course.id;
+    courseModalTag.textContent = 'Edit Course Details (دەستکاری ناوی کۆرس)';
+    courseModalTitle.textContent = `Edit Course: ${course.name}`;
+    courseYearInput.value = course.year;
+    courseNameInput.value = course.name;
+    courseCategoryInput.value = course.category || 'General';
+    saveCourseBtnText.textContent = 'Save Course Changes';
+  } else {
+    // Create mode
+    courseEditIdInput.value = '';
+    courseModalTag.textContent = 'Course Management';
+    courseModalTitle.textContent = 'Create New Course Recorder';
+    saveCourseBtnText.textContent = 'Create Course Recorder';
+    const currentCalYear = new Date().getFullYear();
+    courseYearInput.value = (state.activeYear !== 'all') ? state.activeYear : currentCalYear;
+  }
+
   courseModal.classList.add('is-open');
   courseModal.setAttribute('aria-hidden', 'false');
   setTimeout(() => courseNameInput.focus(), 80);
 }
 
+window.openEditCourseModal = (courseId) => {
+  openCourseModal('edit', courseId);
+};
+
 function closeCourseModal() {
   courseModal.classList.remove('is-open');
   courseModal.setAttribute('aria-hidden', 'true');
+  courseEditIdInput.value = '';
 }
 
-openCourseModalBtn.addEventListener('click', openCourseModal);
+openCourseModalBtn.addEventListener('click', () => openCourseModal('create'));
 closeCourseModalBtn.addEventListener('click', closeCourseModal);
 cancelCourseModalBtn.addEventListener('click', closeCourseModal);
+
+// Edit Course Name button in active banner
+editCourseBtn.addEventListener('click', () => {
+  if (state.activeCourseId !== 'all') {
+    openCourseModal('edit', state.activeCourseId);
+  }
+});
 
 courseForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -384,6 +502,7 @@ courseForm.addEventListener('submit', async (e) => {
   const yearVal = parseInt(courseYearInput.value, 10);
   const nameVal = courseNameInput.value.trim();
   const categoryVal = courseCategoryInput.value;
+  const editId = courseEditIdInput.value ? parseInt(courseEditIdInput.value, 10) : null;
 
   let hasError = false;
   if (isNaN(yearVal) || yearVal < 2000 || yearVal > 2100) {
@@ -396,25 +515,43 @@ courseForm.addEventListener('submit', async (e) => {
   }
   if (hasError) return;
 
-  const newCourse = {
-    name: nameVal,
-    year: yearVal,
-    category: categoryVal,
-    createdAt: Date.now()
-  };
-
   try {
-    const courseId = await Database.addCourse(newCourse);
-    showToast(`Created course recorder: "${nameVal}" (${yearVal})`);
-    closeCourseModal();
-    
-    // Switch to the newly created course recorder
-    state.activeCourseId = courseId;
-    state.activeYear = String(yearVal);
-    await loadDatabase();
+    if (editId) {
+      // Edit / Rename existing course
+      const existing = state.courses.find(c => c.id === editId);
+      const updatedCourse = {
+        ...existing,
+        id: editId,
+        name: nameVal,
+        year: yearVal,
+        category: categoryVal,
+        updatedAt: Date.now()
+      };
+
+      await Database.updateCourse(updatedCourse);
+      showToast(`Updated course: "${nameVal}"`);
+      closeCourseModal();
+      await loadDatabase();
+    } else {
+      // Create new course
+      const newCourse = {
+        name: nameVal,
+        year: yearVal,
+        category: categoryVal,
+        createdAt: Date.now()
+      };
+
+      const courseId = await Database.addCourse(newCourse);
+      showToast(`Created course recorder: "${nameVal}" (${yearVal})`);
+      closeCourseModal();
+
+      state.activeCourseId = courseId;
+      state.activeYear = String(yearVal);
+      await loadDatabase();
+    }
   } catch (err) {
     console.error(err);
-    showToast('Failed to create course recorder', 'error');
+    showToast('Failed to save course', 'error');
   }
 });
 
@@ -483,9 +620,15 @@ function openCustomerModal(mode = 'create', record = null) {
     populateCourseDropdown(record.courseId);
 
     if (record.image) {
-      setImagePreview(record.image);
+      setImagePreview(record.image, 1);
     } else {
-      clearImagePreview();
+      clearImagePreview(1);
+    }
+
+    if (record.image2) {
+      setImagePreview(record.image2, 2);
+    } else {
+      clearImagePreview(2);
     }
   } else {
     // Create Mode
@@ -496,7 +639,8 @@ function openCustomerModal(mode = 'create', record = null) {
     recordIdInput.value = '';
     currencySelect.value = 'IQD';
     populateCourseDropdown(targetCourseId);
-    clearImagePreview();
+    clearImagePreview(1);
+    clearImagePreview(2);
   }
 
   customerModal.classList.add('is-open');
@@ -596,6 +740,7 @@ customerForm.addEventListener('submit', async (e) => {
     amount: amountVal,
     currency,
     image: state.currentImageBase64,
+    image2: state.currentImage2Base64,
     notes,
     createdAt: Date.now()
   };
@@ -849,8 +994,17 @@ function renderCourseBreakdownGrid() {
       <div class="course-card" onclick="selectCourse(${course.id})">
         <div>
           <div class="course-card-top">
-            <span class="course-card-year">${course.year}</span>
-            <span class="course-card-category">${escapeHtml(course.category || 'Course')}</span>
+            <div class="course-card-badges">
+              <span class="course-card-year">${course.year}</span>
+              <span class="course-card-category">${escapeHtml(course.category || 'Course')}</span>
+            </div>
+            <button type="button" class="btn-card-edit" onclick="event.stopPropagation(); openEditCourseModal(${course.id})" title="Edit Course Name">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              Edit Name
+            </button>
           </div>
           <h4 class="course-card-title">${escapeHtml(course.name)}</h4>
         </div>
@@ -982,19 +1136,49 @@ function renderRecordsTable() {
       </span>
     ` : `<span style="color: var(--text-dim);">General</span>`;
 
-    const photoCell = item.image ? `
-      <div class="receipt-thumb-wrap" onclick="openLightbox(${item.id})" title="Click to view full-resolution payment picture">
-        <img src="${item.image}" alt="Receipt for ${escapeHtml(item.name)}" class="receipt-thumb">
-        <div class="receipt-thumb-overlay">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            <line x1="11" y1="8" x2="11" y2="14"></line>
-            <line x1="8" y1="11" x2="14" y2="11"></line>
-          </svg>
+    let photoCell = '';
+    if (item.image && item.image2) {
+      photoCell = `
+        <div class="photos-cell-group">
+          <div class="receipt-thumb-wrap" onclick="openLightbox(${item.id}, 1)" title="Click to view Photo 1 (Payment Proof)">
+            <img src="${item.image}" alt="Photo 1 for ${escapeHtml(item.name)}" class="receipt-thumb">
+            <span class="photo-idx-badge">#1</span>
+            <div class="receipt-thumb-overlay">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            </div>
+          </div>
+          <div class="receipt-thumb-wrap" onclick="openLightbox(${item.id}, 2)" title="Click to view Photo 2 (Document / ID)">
+            <img src="${item.image2}" alt="Photo 2 for ${escapeHtml(item.name)}" class="receipt-thumb">
+            <span class="photo-idx-badge" style="background: rgba(124, 58, 237, 0.9);">#2</span>
+            <div class="receipt-thumb-overlay">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            </div>
+          </div>
         </div>
-      </div>
-    ` : `<span class="no-photo-badge">No photo attached</span>`;
+      `;
+    } else if (item.image) {
+      photoCell = `
+        <div class="receipt-thumb-wrap" onclick="openLightbox(${item.id}, 1)" title="Click to view Photo 1 (Payment Proof)">
+          <img src="${item.image}" alt="Photo 1 for ${escapeHtml(item.name)}" class="receipt-thumb">
+          <span class="photo-idx-badge">#1</span>
+          <div class="receipt-thumb-overlay">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+          </div>
+        </div>
+      `;
+    } else if (item.image2) {
+      photoCell = `
+        <div class="receipt-thumb-wrap" onclick="openLightbox(${item.id}, 2)" title="Click to view Photo 2 (Document / ID)">
+          <img src="${item.image2}" alt="Photo 2 for ${escapeHtml(item.name)}" class="receipt-thumb">
+          <span class="photo-idx-badge" style="background: rgba(124, 58, 237, 0.9);">#2</span>
+          <div class="receipt-thumb-overlay">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+          </div>
+        </div>
+      `;
+    } else {
+      photoCell = `<span class="no-photo-badge">No photo attached</span>`;
+    }
 
     return `
       <tr>
@@ -1101,25 +1285,85 @@ window.handleDeleteClick = async (id) => {
   }
 };
 
-window.openLightbox = (id) => {
+window.openLightbox = (id, photoNum = 1) => {
   const record = state.customers.find(c => c.id === id);
-  if (!record || !record.image) return;
+  if (!record) return;
+
+  const hasPhoto1 = Boolean(record.image);
+  const hasPhoto2 = Boolean(record.image2);
+
+  if (!hasPhoto1 && !hasPhoto2) return;
+
+  // If requested photo slot doesn't exist, fallback to available one
+  if (photoNum === 2 && !hasPhoto2) photoNum = 1;
+  if (photoNum === 1 && !hasPhoto1) photoNum = 2;
+
+  state.lightboxRecordId = id;
+  state.lightboxPhotoIndex = photoNum;
 
   const course = state.courses.find(c => c.id === record.courseId);
   const courseStr = course ? `[${course.name} (${course.year})]` : '';
 
   lightboxCustomerName.textContent = `${record.name} ${courseStr}`;
   lightboxAmount.textContent = formatCurrency(record.amount, record.currency || '$');
-  lightboxImg.src = record.image;
+
+  if (hasPhoto1 && hasPhoto2) {
+    lightboxPhotoSwitcher.style.display = 'inline-flex';
+    updateLightboxSwitcherUI(photoNum);
+  } else {
+    lightboxPhotoSwitcher.style.display = 'none';
+  }
+
+  lightboxImg.src = (photoNum === 1 ? record.image : record.image2) || '';
 
   lightboxModal.classList.add('is-open');
   lightboxModal.setAttribute('aria-hidden', 'false');
 };
 
+function updateLightboxSwitcherUI(activeNum) {
+  if (activeNum === 1) {
+    lightboxPhoto1Btn.classList.add('active');
+    lightboxPhoto2Btn.classList.remove('active');
+  } else {
+    lightboxPhoto1Btn.classList.remove('active');
+    lightboxPhoto2Btn.classList.add('active');
+  }
+}
+
+function switchLightboxPhoto(photoNum) {
+  if (!state.lightboxRecordId) return;
+  const record = state.customers.find(c => c.id === state.lightboxRecordId);
+  if (!record) return;
+
+  if (photoNum === 1 && record.image) {
+    state.lightboxPhotoIndex = 1;
+    lightboxImg.src = record.image;
+    updateLightboxSwitcherUI(1);
+  } else if (photoNum === 2 && record.image2) {
+    state.lightboxPhotoIndex = 2;
+    lightboxImg.src = record.image2;
+    updateLightboxSwitcherUI(2);
+  }
+}
+
+lightboxPhoto1Btn.addEventListener('click', () => switchLightboxPhoto(1));
+lightboxPhoto2Btn.addEventListener('click', () => switchLightboxPhoto(2));
+
+// Arrow keys navigation in lightbox to toggle photo 1 and photo 2
+window.addEventListener('keydown', (e) => {
+  if (!lightboxModal.classList.contains('is-open')) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    switchLightboxPhoto(1);
+  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    switchLightboxPhoto(2);
+  }
+});
+
 function closeLightbox() {
   lightboxModal.classList.remove('is-open');
   lightboxModal.setAttribute('aria-hidden', 'true');
   lightboxImg.src = '';
+  state.lightboxRecordId = null;
 }
 
 closeLightboxBtn.addEventListener('click', closeLightbox);
@@ -1336,6 +1580,76 @@ function createSampleReceiptImage(customerName, amountStr, courseTitle, txnId) {
   return canvas.toDataURL('image/jpeg', 0.88);
 }
 
+function createSampleDocumentImage(customerName, courseTitle, docType) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 600;
+  canvas.height = 420;
+  const ctx = canvas.getContext('2d');
+
+  // Background Gradient (Deep Indigo)
+  const grad = ctx.createLinearGradient(0, 0, 600, 420);
+  grad.addColorStop(0, '#1E1B4B');
+  grad.addColorStop(1, '#312E81');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 600, 420);
+
+  // Border
+  ctx.strokeStyle = '#4338CA';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(15, 15, 570, 390);
+
+  // Header Banner
+  ctx.fillStyle = '#7C3AED';
+  ctx.fillRect(15, 15, 570, 70);
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 20px "Outfit", sans-serif';
+  ctx.fillText(docType.toUpperCase(), 35, 56);
+
+  // Badge
+  ctx.beginPath();
+  ctx.arc(540, 50, 18, 0, 2 * Math.PI);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('ID', 532, 56);
+
+  // Subtitle
+  ctx.fillStyle = '#A5B4FC';
+  ctx.font = '13px sans-serif';
+  ctx.fillText('STUDENT ENROLLMENT DOCUMENTATION', 35, 125);
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillText(customerName, 35, 175);
+
+  // Details
+  ctx.fillStyle = '#C7D2FE';
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('Program / Cohort:', 35, 230);
+  ctx.font = '15px sans-serif';
+  ctx.fillText(courseTitle, 185, 230);
+
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('Document Type:', 35, 270);
+  ctx.font = '15px sans-serif';
+  ctx.fillText(docType, 185, 270);
+
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('Verification Date:', 35, 310);
+  ctx.font = '15px monospace';
+  ctx.fillText(new Date().toISOString().slice(0, 10), 185, 310);
+
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('Security Status:', 35, 350);
+  ctx.fillStyle = '#A7F3D0';
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillText('AUTHENTICATED & VERIFIED', 185, 350);
+
+  return canvas.toDataURL('image/jpeg', 0.88);
+}
+
 loadSampleBtn.addEventListener('click', async () => {
   // Course 1: Year 2026 - Web Development
   const c1Id = await Database.addCourse({
@@ -1368,7 +1682,8 @@ loadSampleBtn.addEventListener('click', async () => {
     amount: 1800000,
     currency: 'IQD',
     image: createSampleReceiptImage('Alexander Wright', '1,800,000 IQD', 'Full-Stack Web Dev', 'TXN-9482910'),
-    notes: 'Full tuition paid in Iraqi Dinar',
+    image2: createSampleDocumentImage('Alexander Wright', 'Full-Stack Web Dev', 'Student Identity Card'),
+    notes: 'Full tuition paid in Iraqi Dinar (Receipt + ID)',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 5
   });
 
@@ -1378,7 +1693,8 @@ loadSampleBtn.addEventListener('click', async () => {
     amount: 1500000,
     currency: 'IQD',
     image: createSampleReceiptImage('Sophia Chen', '1,500,000 IQD', 'Full-Stack Web Dev', 'TXN-3891024'),
-    notes: 'Early bird registration discount',
+    image2: createSampleDocumentImage('Sophia Chen', 'Full-Stack Web Dev', 'Scholarship Agreement'),
+    notes: 'Early bird registration discount with signed agreement',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3
   });
 
@@ -1399,7 +1715,8 @@ loadSampleBtn.addEventListener('click', async () => {
     amount: 950000,
     currency: 'IQD',
     image: createSampleReceiptImage('Elena Rostova', '950,000 IQD', 'Graphic Design & UI', 'TXN-5510293'),
-    notes: 'Payment transfer receipt attached',
+    image2: createSampleDocumentImage('Elena Rostova', 'Graphic Design & UI', 'Transfer Confirmation Slip'),
+    notes: 'Payment transfer receipt + bank stamp attached',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2
   });
 
@@ -1420,7 +1737,8 @@ loadSampleBtn.addEventListener('click', async () => {
     amount: 450,
     currency: 'JOD',
     image: createSampleReceiptImage('Fatima Al-Mansoor', '450 JOD', 'Business English', 'TXN-1102938'),
-    notes: 'Cash receipt in Jordanian Dinar',
+    image2: createSampleDocumentImage('Fatima Al-Mansoor', 'Business English', 'Placement Test Certificate'),
+    notes: 'Cash receipt in Jordanian Dinar + test certificate',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 60
   });
 
@@ -1434,7 +1752,7 @@ loadSampleBtn.addEventListener('click', async () => {
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 45
   });
 
-  showToast('Loaded 3 courses with Dinar payment records!');
+  showToast('Loaded 3 courses with Dual-Photo Dinar payment records!');
   await loadDatabase();
 });
 
