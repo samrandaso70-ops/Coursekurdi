@@ -15,24 +15,31 @@ A simple, fast, and persistent web application database to keep track of custome
   - 📊 **Average Payment Amount** per student.
   - 📋 **Course Breakdown Cards** displaying student counts and revenue for every course at a glance.
 
-- **3-Section Payment Window (Modal)**:
+- **4-Section Payment Window (Modal)**:
   - **Section 1**: Customer / Student Name
-  - **Section 2**: Amount of Money Paid (with currency selector: `$`, `€`, `£`, `¥`, `AED`, `SAR`, etc.)
-  - **Section 3**: Picture of the Money / Payment Proof (file upload, drag & drop, and direct clipboard `Ctrl+V` screenshot paste)
+  - **Section 2**: Amount of Money Paid (with currency selector: `IQD`, `KWD`, `JOD`, `$`, `€`, `£`, `AED`, `SAR`, etc.)
+  - **Section 3**: Primary Photo / Receipt (Cash photo, transfer proof, screenshot)
+  - **Section 4**: Second Photo / Additional Document (Student ID, contract, promissory note)
   - Course assignment dropdown (auto-preselected to active course)
+
+- **Course Name Editing**:
+  - Rename any course ledger directly from the top banner or overview breakdown cards.
+  - Automatically updates across all tabs, cards, banners, and student payment entries.
 
 - **Persistent Database (IndexedDB)**:
   - Stored inside your browser's persistent database (`PayVaultDB`).
   - Never lost on refresh; works 100% offline with zero server costs or quota bottlenecks.
 
-- **Full-Screen Lightbox**:
-  - Click any customer's money thumbnail in the list to view and inspect the high-resolution photo.
+- **Full-Screen Multi-Photo Lightbox**:
+  - Click any customer's photo thumbnail to inspect in high resolution.
+  - Interactive photo switcher (`📷 Photo 1` / `📄 Photo 2`) and keyboard arrow key navigation.
 
 - **Data Export & Import**:
-  - One-click JSON backup of all courses, academic years, student payments, and proof photos.
+  - One-click JSON backup of all courses, academic years, student payments, and both proof photos.
 
-## 🚀 How to Run
+## 🌐 Live Links
 
-1. Open your browser and go to:
-   👉 **[http://localhost:5500/](http://localhost:5500/)**
-2. Or double-click `index.html` in your file explorer (`c:\Users\hp\Desktop\datanase antigravity\index.html`).
+- **GitHub Pages**: 👉 **[https://samrandaso70-ops.github.io/Coursekurdi/](https://samrandaso70-ops.github.io/Coursekurdi/)**
+- **Vercel**: 👉 **[https://course-git-main-vvb4.vercel.app](https://course-git-main-vvb4.vercel.app)**
+- **Local Server**: 👉 **[http://localhost:5500/](http://localhost:5500/)** (run `.\serve.ps1`)
+
